@@ -77,15 +77,26 @@ func (h *Handler) GetVerificationData() fiber.Handler {
 // @Tags			Verification
 // @Accept			json
 // @Produce		json
-// @Param			X-Client-ID	header		string	true	"TFChain SS58Address"								minlength(48)	maxlength(48)
-// @Param			X-Challenge	header		string	true	"hex-encoded message `{api-domain}:{timestamp}`"
-// @Param			X-Signature	header		string	true	"hex-encoded sr25519|ed25519 signature"				minlength(128)	maxlength(128)
+// @Param			client_id	query		string	false	"TFChain SS58Address"								minlength(48)	maxlength(48)
+// @Param			twin_id		query		string	false	"Twin ID"											minlength(1)
 // @Success		200			{object}	responses.VerificationStatusResponse
 // @Router			/api/v1/status [get]
 func (h *Handler) GetVerificationStatus() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get("X-Client-ID")
-		verification, err := h.kycService.GetVerificationStatus(c.Context(), clientID)
+		clientID := c.Query("client_id")
+		twinID := c.Query("twin_id")
+
+		if clientID == "" && twinID == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Either client_id or twin_id must be provided"})
+		}
+		var verification *models.VerificationOutcome
+		var err error
+
+		if clientID != "" {
+			verification, err = h.kycService.GetVerificationStatus(c.Context(), clientID)
+		} else {
+			verification, err = h.kycService.GetVerificationStatusByTwinID(c.Context(), twinID)
+		}
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}

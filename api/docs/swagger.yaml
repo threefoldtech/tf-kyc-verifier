@@ -171,23 +171,15 @@ paths:
       description: Returns the verification status for a client
       parameters:
       - description: TFChain SS58Address
-        in: header
+        in: query
         maxLength: 48
         minLength: 48
-        name: X-Client-ID
-        required: true
+        name: client_id
         type: string
-      - description: hex-encoded message `{api-domain}:{timestamp}`
-        in: header
-        name: X-Challenge
-        required: true
-        type: string
-      - description: hex-encoded sr25519|ed25519 signature
-        in: header
-        maxLength: 128
-        minLength: 128
-        name: X-Signature
-        required: true
+      - description: Twin ID
+        in: query
+        minLength: 1
+        name: twin_id
         type: string
       produces:
       - application/json

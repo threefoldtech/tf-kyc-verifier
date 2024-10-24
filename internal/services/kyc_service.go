@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"example.com/tfgrid-kyc-service/internal/clients/idenfy"
 	"example.com/tfgrid-kyc-service/internal/clients/substrate"
@@ -78,7 +79,7 @@ func (s *kycService) AccountHasRequiredBalance(ctx context.Context, address stri
 	if err != nil {
 		return false, err
 	}
-	return balance >= s.config.MinBalanceToVerifyAccount, nil
+	return balance.Cmp(big.NewInt(int64(s.config.MinBalanceToVerifyAccount))) >= 0, nil
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -114,6 +115,15 @@ func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string)
 		IdenfyRef: verification.ScanRef,
 		Outcome:   outcome,
 	}, nil
+}
+
+func (s *kycService) GetVerificationStatusByTwinID(ctx context.Context, twinID string) (*models.VerificationOutcome, error) {
+	// get the address from the twinID
+	address, err := s.substrate.GetAddressByTwinID(twinID)
+	if err != nil {
+		return nil, err
+	}
+	return s.GetVerificationStatus(ctx, address)
 }
 
 func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte, sigHeader string, result models.Verification) error {

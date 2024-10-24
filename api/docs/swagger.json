@@ -82,25 +82,15 @@
                         "minLength": 48,
                         "type": "string",
                         "description": "TFChain SS58Address",
-                        "name": "X-Client-ID",
-                        "in": "header",
-                        "required": true
+                        "name": "client_id",
+                        "in": "query"
                     },
                     {
+                        "minLength": 1,
                         "type": "string",
-                        "description": "hex-encoded message `{api-domain}:{timestamp}`",
-                        "name": "X-Challenge",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "maxLength": 128,
-                        "minLength": 128,
-                        "type": "string",
-                        "description": "hex-encoded sr25519|ed25519 signature",
-                        "name": "X-Signature",
-                        "in": "header",
-                        "required": true
+                        "description": "Twin ID",
+                        "name": "twin_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {

@@ -2,29 +2,28 @@ package substrate
 
 import (
 	"fmt"
+	"math/big"
+	"strconv"
 	"sync"
 
 	"example.com/tfgrid-kyc-service/internal/configs"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v4"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/vedhavyas/go-subkey/v2"
+
+	// use tfchain go client
+
+	tfchain "github.com/threefoldtech/tfchain/clients/tfchain-client-go"
 )
 
 type Substrate struct {
-	api *gsrpc.SubstrateAPI
+	api *tfchain.Substrate
 	mu  sync.Mutex // TODO: Check if SubstrateAPI is thread safe
 }
 
 func New(config configs.TFChainConfig) (*Substrate, error) {
-	api, err := gsrpc.NewSubstrateAPI(config.WsProviderURL)
+	mgr := tfchain.NewManager(config.WsProviderURL)
+	api, err := mgr.Substrate()
 	if err != nil {
 		return nil, fmt.Errorf("substrate connection error: failed to initialize Substrate client: %w", err)
 	}
-
-	chain, _ := api.RPC.System.Chain()
-	nodeName, _ := api.RPC.System.Name()
-	nodeVersion, _ := api.RPC.System.Version()
-	fmt.Println("conected to chain:", chain, "| nodeName:", nodeName, "| nodeVersion:", nodeVersion)
 
 	c := &Substrate{
 		api: api,
@@ -33,34 +32,28 @@ func New(config configs.TFChainConfig) (*Substrate, error) {
 	return c, nil
 }
 
-func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
-	_, pubkeyBytes, err := subkey.SS58Decode(address)
+func (c *Substrate) GetAccountBalance(address string) (*big.Int, error) {
+	pubkeyBytes, err := tfchain.FromAddress(address)
 	if err != nil {
-		return 0, fmt.Errorf("failed to decode ss58 address: %w", err)
+		return nil, fmt.Errorf("failed to decode ss58 address: %w", err)
 	}
-	account, err := types.NewAddressFromAccountID(pubkeyBytes)
+	accountID := tfchain.AccountID(pubkeyBytes)
+	balance, err := c.api.GetBalance(accountID)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create AccountID: %w", err)
-	}
-	meta, err := c.api.RPC.State.GetMetadataLatest()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get metadata: %w", err)
-	}
-	// Create a storage key for the account's balance
-	key, err := types.CreateStorageKey(meta, "System", "Account", account.AsAccountID.ToBytes())
-	if err != nil {
-		return 0, fmt.Errorf("failed to create storage key: %w", err)
+		return nil, fmt.Errorf("failed to get balance: %w", err)
 	}
 
-	// Query the storage
-	var accountInfo types.AccountInfo
-	ok, err := c.api.RPC.State.GetStorageLatest(key, &accountInfo)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get storage: %w", err)
-	}
-	if !ok {
-		return 0, nil // account not found
-	}
+	return balance.Free.Int, nil
+}
 
-	return accountInfo.Data.Free.Uint64(), nil
+func (c *Substrate) GetAddressByTwinID(twinID string) (string, error) {
+	twinIDUint32, err := strconv.ParseUint(twinID, 10, 32)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse twin ID: %w", err)
+	}
+	twin, err := c.api.GetTwin(uint32(twinIDUint32))
+	if err != nil {
+		return "", fmt.Errorf("failed to get twin: %w", err)
+	}
+	return twin.Account.String(), nil
 }

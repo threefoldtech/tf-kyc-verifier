@@ -12,6 +12,7 @@ type KYCService interface {
 	AccountHasRequiredBalance(ctx context.Context, address string) (bool, error)
 	GetVerification(ctx context.Context, clientID string) (*models.Verification, error)
 	GetVerificationStatus(ctx context.Context, clientID string) (*models.VerificationOutcome, error)
+	GetVerificationStatusByTwinID(ctx context.Context, twinID string) (*models.VerificationOutcome, error)
 	ProcessVerificationResult(ctx context.Context, body []byte, sigHeader string, result models.Verification) error
 	ProcessDocExpirationNotification(ctx context.Context, clientID string) error
 	IsUserVerified(ctx context.Context, clientID string) (bool, error)

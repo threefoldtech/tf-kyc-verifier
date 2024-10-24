@@ -1,4 +1,3 @@
-// Use substarte client to get account free balance for development use
 package main
 
 import (
@@ -17,9 +16,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	free_balance, err := substrateClient.GetAccountBalance("5DFkH2fcqYecVHjfgAEfxgsJyoEg5Kd93JFihfpHDaNoWagJ")
+
+	address, err := substrateClient.GetAddressByTwinID("41")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(free_balance)
+	fmt.Println(address)
+
 }

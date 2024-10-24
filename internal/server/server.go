@@ -144,9 +144,10 @@ func New(config *configs.Config) *Server {
 	// Routes
 	app.Get("/docs/*", swagger.HandlerDefault)
 
-	v1 := app.Group("/api/v1", middleware.AuthMiddleware(config.ChallengeWindow))
-	v1.Post("/token", limiter.New(idLimiterConfig), limiter.New(ipLimiterConfig), handler.GetorCreateVerificationToken())
-	v1.Get("/data", handler.GetVerificationData())
+	v1 := app.Group("/api/v1")
+	v1.Post("/token", middleware.AuthMiddleware(config.ChallengeWindow), limiter.New(idLimiterConfig), limiter.New(ipLimiterConfig), handler.GetorCreateVerificationToken())
+	v1.Get("/data", middleware.AuthMiddleware(config.ChallengeWindow), handler.GetVerificationData())
+	// status route accepts either client_id or twin_id as query parameters
 	v1.Get("/status", handler.GetVerificationStatus())
 
 	// Webhook routes
