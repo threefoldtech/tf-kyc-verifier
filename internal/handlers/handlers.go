@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 
+	"example.com/tfgrid-kyc-service/internal/errors"
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 	"example.com/tfgrid-kyc-service/internal/responses"
@@ -39,7 +40,7 @@ func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 
 		token, isNewToken, err := h.kycService.GetorCreateVerificationToken(c.Context(), clientID)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return handleError(c, err)
 		}
 		response := responses.NewTokenResponseWithStatus(token, isNewToken)
 		if isNewToken {
@@ -62,9 +63,9 @@ func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 func (h *Handler) GetVerificationData() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get("X-Client-ID")
-		verification, err := h.kycService.GetVerification(c.Context(), clientID)
+		verification, err := h.kycService.GetVerificationData(c.Context(), clientID)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return handleError(c, err)
 		}
 		if verification == nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Verification not found"})
@@ -107,7 +108,7 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 				zap.String("twinID", twinID),
 				zap.Error(err),
 			)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return handleError(c, err)
 		}
 		if verification == nil {
 			h.logger.Info("Verification not found",
@@ -150,7 +151,7 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 		h.logger.Debug("Verification update after decoding", zap.Any("result", result))
 		err = h.kycService.ProcessVerificationResult(c.Context(), body, sigHeader, result)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			return handleError(c, err)
 		}
 		return c.SendStatus(fiber.StatusOK)
 	}
@@ -168,5 +169,38 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 		// TODO: implement
 		h.logger.Error("Received ID expiration notification but not implemented")
 		return c.SendStatus(fiber.StatusNotImplemented)
+	}
+}
+
+func handleError(c *fiber.Ctx, err error) error {
+	if serviceErr, ok := err.(*errors.ServiceError); ok {
+		return handleServiceError(c, serviceErr)
+	}
+	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+}
+
+func handleServiceError(c *fiber.Ctx, err *errors.ServiceError) error {
+	statusCode := getStatusCode(err.Type)
+	return c.Status(statusCode).JSON(fiber.Map{
+		"error": err.Message,
+	})
+}
+
+func getStatusCode(errorType errors.ErrorType) int {
+	switch errorType {
+	case errors.ErrorTypeValidation:
+		return fiber.StatusBadRequest
+	case errors.ErrorTypeAuthorization:
+		return fiber.StatusUnauthorized
+	case errors.ErrorTypeNotFound:
+		return fiber.StatusNotFound
+	case errors.ErrorTypeConflict:
+		return fiber.StatusConflict
+	case errors.ErrorTypeExternal:
+		return fiber.StatusBadGateway
+	case errors.ErrorTypeNotSufficientBalance:
+		return fiber.StatusPaymentRequired
+	default:
+		return fiber.StatusInternalServerError
 	}
 }

@@ -328,6 +328,9 @@ const docTemplate = `{
                 "fullName": {
                     "type": "string"
                 },
+                "idenfyRef": {
+                    "type": "string"
+                },
                 "manuallyDataChanged": {
                     "type": "boolean"
                 },
@@ -359,9 +362,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "orgTemporaryAddress": {
-                    "type": "string"
-                },
-                "scanRef": {
                     "type": "string"
                 },
                 "selectedCountry": {

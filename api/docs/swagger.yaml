@@ -81,6 +81,8 @@ definitions:
         type: array
       fullName:
         type: string
+      idenfyRef:
+        type: string
       manuallyDataChanged:
         type: boolean
       mothersMaidenName:
@@ -102,8 +104,6 @@ definitions:
       orgNationality:
         type: string
       orgTemporaryAddress:
-        type: string
-      scanRef:
         type: string
       selectedCountry:
         type: string

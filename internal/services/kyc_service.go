@@ -2,13 +2,13 @@ package services
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"time"
 
 	"example.com/tfgrid-kyc-service/internal/clients/idenfy"
 	"example.com/tfgrid-kyc-service/internal/clients/substrate"
 	"example.com/tfgrid-kyc-service/internal/configs"
+	"example.com/tfgrid-kyc-service/internal/errors"
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 	"example.com/tfgrid-kyc-service/internal/repository"
@@ -36,15 +36,15 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 	isVerified, err := s.IsUserVerified(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error checking if user is verified", zap.String("clientID", clientID), zap.Error(err))
-		return nil, false, err
+		return nil, false, errors.NewInternalError("error getting verification status from database", err) // db error
 	}
 	if isVerified {
-		return nil, false, errors.New("user already verified") // TODO: implement a custom error that can be converted in the handler to a 400 status code
+		return nil, false, errors.NewConflictError("user already verified", nil) // TODO: implement a custom error that can be converted in the handler to a 4xx such 409 status code
 	}
-	token, err := s.tokenRepo.GetToken(ctx, clientID)
-	if err != nil {
-		s.logger.Error("Error getting token from database", zap.String("clientID", clientID), zap.Error(err))
-		return nil, false, err
+	token, err_ := s.tokenRepo.GetToken(ctx, clientID)
+	if err_ != nil {
+		s.logger.Error("Error getting token from database", zap.String("clientID", clientID), zap.Error(err_))
+		return nil, false, errors.NewInternalError("error getting token from database", err_) // db error
 	}
 	// check if token is found and not expired
 	if token != nil {
@@ -57,21 +57,21 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 	}
 
 	// check if user account balance satisfies the minimum required balance, return an error if not
-	hasRequiredBalance, err := s.AccountHasRequiredBalance(ctx, clientID)
-	if err != nil {
-		s.logger.Error("Error checking if user account has required balance", zap.String("clientID", clientID), zap.Error(err))
-		return nil, false, err // todo: implement a custom error that can be converted in the handler to a 500 status code
+	hasRequiredBalance, err_ := s.AccountHasRequiredBalance(ctx, clientID)
+	if err_ != nil {
+		s.logger.Error("Error checking if user account has required balance", zap.String("clientID", clientID), zap.Error(err_))
+		return nil, false, errors.NewExternalError("error checking if user account has required balance", err_)
 	}
 	if !hasRequiredBalance {
-		return nil, false, errors.New("account does not have the required balance") // todo: implement a custom error that can be converted in the handler to a 402 status code
+		return nil, false, errors.NewNotSufficientBalanceError("account does not have the required balance", nil)
 	}
-	newToken, err := s.idenfy.CreateVerificationSession(ctx, clientID)
-	if err != nil {
-		s.logger.Error("Error creating iDenfy verification session", zap.String("clientID", clientID), zap.Error(err))
-		return nil, false, err
+	newToken, err_ := s.idenfy.CreateVerificationSession(ctx, clientID)
+	if err_ != nil {
+		s.logger.Error("Error creating iDenfy verification session", zap.String("clientID", clientID), zap.Error(err_))
+		return nil, false, errors.NewExternalError("error creating iDenfy verification session", err_)
 	}
-	err = s.tokenRepo.SaveToken(ctx, &newToken)
-	if err != nil {
+	err_ = s.tokenRepo.SaveToken(ctx, &newToken)
+	if err_ != nil {
 		s.logger.Error("Error saving verification token to database", zap.String("clientID", clientID), zap.Error(err))
 	}
 
@@ -83,8 +83,9 @@ func (s *kycService) DeleteToken(ctx context.Context, clientID string, scanRef s
 	err := s.tokenRepo.DeleteToken(ctx, clientID, scanRef)
 	if err != nil {
 		s.logger.Error("Error deleting verification token from database", zap.String("clientID", clientID), zap.String("scanRef", scanRef), zap.Error(err))
+		return errors.NewInternalError("error deleting verification token from database", err)
 	}
-	return err
+	return nil
 }
 
 func (s *kycService) AccountHasRequiredBalance(ctx context.Context, address string) (bool, error) {
@@ -95,7 +96,7 @@ func (s *kycService) AccountHasRequiredBalance(ctx context.Context, address stri
 	balance, err := s.substrate.GetAccountBalance(address)
 	if err != nil {
 		s.logger.Error("Error getting account balance", zap.String("address", address), zap.Error(err))
-		return false, err
+		return false, errors.NewExternalError("error getting account balance", err)
 	}
 	return balance.Cmp(big.NewInt(int64(s.config.MinBalanceToVerifyAccount))) >= 0, nil
 }
@@ -104,19 +105,20 @@ func (s *kycService) AccountHasRequiredBalance(ctx context.Context, address stri
 // verification related methods
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (s *kycService) GetVerification(ctx context.Context, clientID string) (*models.Verification, error) {
+func (s *kycService) GetVerificationData(ctx context.Context, clientID string) (*models.Verification, error) {
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		return nil, err
+		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
+		return nil, errors.NewInternalError("error getting verification from database", err)
 	}
 	return verification, nil
 }
 
 func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string) (*models.VerificationOutcome, error) {
-	verification, err := s.GetVerification(ctx, clientID)
+	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
-		return nil, err
+		return nil, errors.NewInternalError("error getting verification from database", err)
 	}
 	var outcome models.Outcome
 	if verification != nil {
@@ -141,7 +143,7 @@ func (s *kycService) GetVerificationStatusByTwinID(ctx context.Context, twinID s
 	address, err := s.substrate.GetAddressByTwinID(twinID)
 	if err != nil {
 		s.logger.Error("Error getting address from twinID", zap.String("twinID", twinID), zap.Error(err))
-		return nil, err
+		return nil, errors.NewExternalError("error looking up twinID address from TFChain", err)
 	}
 	return s.GetVerificationStatus(ctx, address)
 }
@@ -150,7 +152,7 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 	err := s.idenfy.VerifyCallbackSignature(ctx, body, sigHeader)
 	if err != nil {
 		s.logger.Error("Error verifying callback signature", zap.String("sigHeader", sigHeader), zap.Error(err))
-		return err
+		return errors.NewAuthorizationError("error verifying callback signature", err)
 	}
 	// delete the token with the same clientID and same scanRef
 	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.IdenfyRef)
@@ -162,7 +164,7 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 		err = s.verificationRepo.SaveVerification(ctx, &result)
 		if err != nil {
 			s.logger.Error("Error saving verification to database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))
-			return err
+			return errors.NewInternalError("error saving verification to database", err)
 		}
 	}
 	s.logger.Debug("Verification result processed successfully", zap.Any("result", result))
@@ -176,7 +178,8 @@ func (s *kycService) ProcessDocExpirationNotification(ctx context.Context, clien
 func (s *kycService) IsUserVerified(ctx context.Context, clientID string) (bool, error) {
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		return false, err
+		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
+		return false, errors.NewInternalError("error getting verification from database", err)
 	}
 	if verification == nil {
 		return false, nil

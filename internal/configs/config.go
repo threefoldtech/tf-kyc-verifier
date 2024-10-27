@@ -1,8 +1,7 @@
 package configs
 
 import (
-	"fmt"
-
+	"example.com/tfgrid-kyc-service/internal/errors"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -57,7 +56,7 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{}
 	err := cleanenv.ReadEnv(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("error loading config: %w", err)
+		return nil, errors.NewInternalError("error loading config", err)
 	}
 	return cfg, nil
 }

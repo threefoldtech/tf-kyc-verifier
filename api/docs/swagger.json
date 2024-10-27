@@ -321,6 +321,9 @@
                 "fullName": {
                     "type": "string"
                 },
+                "idenfyRef": {
+                    "type": "string"
+                },
                 "manuallyDataChanged": {
                     "type": "boolean"
                 },
@@ -352,9 +355,6 @@
                     "type": "string"
                 },
                 "orgTemporaryAddress": {
-                    "type": "string"
-                },
-                "scanRef": {
                     "type": "string"
                 },
                 "selectedCountry": {
