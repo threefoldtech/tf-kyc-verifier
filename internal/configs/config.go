@@ -15,6 +15,7 @@ type Config struct {
 	IPLimiter       IPLimiter
 	IDLimiter       IDLimiter
 	ChallengeWindow int64 `env:"CHALLENGE_WINDOW" env-default:"8"`
+	Log             Log
 }
 
 type MongoDB struct {
@@ -48,6 +49,9 @@ type IDLimiter struct {
 	MaxTokenRequests int `env:"ID_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
 	TokenExpiration  int `env:"ID_LIMITER_TOKEN_EXPIRATION" env-default:"24"`
 }
+type Log struct {
+	Debug bool `env:"DEBUG" env-default:"false"`
+}
 
 func LoadConfig() (*Config, error) {
 	cfg := &Config{}
@@ -55,6 +59,5 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading config: %w", err)
 	}
-	fmt.Printf("%+v\n", cfg)
 	return cfg, nil
 }

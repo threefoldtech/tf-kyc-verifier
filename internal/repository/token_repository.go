@@ -2,23 +2,26 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 
+	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 )
 
 type MongoTokenRepository struct {
 	collection *mongo.Collection
+	logger     *logger.Logger
 }
 
-func NewMongoTokenRepository(db *mongo.Database) TokenRepository {
+func NewMongoTokenRepository(db *mongo.Database, logger *logger.Logger) TokenRepository {
 	repo := &MongoTokenRepository{
 		collection: db.Collection("tokens"),
+		logger:     logger,
 	}
 	repo.createTTLIndex()
 	return repo
@@ -37,7 +40,7 @@ func (r *MongoTokenRepository) createTTLIndex() {
 	)
 
 	if err != nil {
-		fmt.Printf("Error creating TTL index: %v\n", err)
+		r.logger.Error("Error creating TTL index", zap.Error(err))
 	}
 }
 
@@ -45,17 +48,14 @@ func (r *MongoTokenRepository) SaveToken(ctx context.Context, token *models.Toke
 	token.CreatedAt = time.Now()
 	token.ExpiresAt = token.CreatedAt.Add(time.Duration(token.ExpiryTime) * time.Second)
 	_, err := r.collection.InsertOne(ctx, token)
-	fmt.Println("token saved to db", err)
 	return err
 }
 
 func (r *MongoTokenRepository) GetToken(ctx context.Context, clientID string) (*models.Token, error) {
 	var token models.Token
-	fmt.Println("clientID from repo", clientID)
 	err := r.collection.FindOne(ctx, bson.M{"clientId": clientID}).Decode(&token)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			fmt.Println("no document found")
 			return nil, nil
 		}
 		return nil, err
@@ -72,9 +72,6 @@ func (r *MongoTokenRepository) GetToken(ctx context.Context, clientID string) (*
 }
 
 func (r *MongoTokenRepository) DeleteToken(ctx context.Context, clientID string, scanRef string) error {
-	res, err := r.collection.DeleteOne(ctx, bson.M{"clientId": clientID, "scanRef": scanRef})
-	if err == nil {
-		fmt.Println("token deletion succeeded. deleted count: ", res.DeletedCount)
-	}
+	_, err := r.collection.DeleteOne(ctx, bson.M{"clientId": clientID, "scanRef": scanRef})
 	return err
 }

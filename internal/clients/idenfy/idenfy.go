@@ -11,8 +11,10 @@ import (
 	"fmt"
 
 	"example.com/tfgrid-kyc-service/internal/configs"
+	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 	"github.com/valyala/fasthttp"
+	"go.uber.org/zap"
 )
 
 type Idenfy struct {
@@ -22,13 +24,14 @@ type Idenfy struct {
 	baseURL         string
 	callbackSignKey []byte
 	devMode         bool
+	logger          *logger.Logger
 }
 
 const (
 	VerificationSessionEndpoint = "/api/v2/token"
 )
 
-func New(config configs.Idenfy) *Idenfy {
+func New(config configs.Idenfy, logger *logger.Logger) *Idenfy {
 	return &Idenfy{
 		baseURL:         config.BaseURL,
 		client:          &fasthttp.Client{},
@@ -36,6 +39,7 @@ func New(config configs.Idenfy) *Idenfy {
 		secretKey:       config.APISecret,
 		callbackSignKey: []byte(config.CallbackSignKey),
 		devMode:         config.DevMode,
+		logger:          logger,
 	}
 }
 
@@ -64,30 +68,27 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
-	fmt.Println("request", req)
+	c.logger.Debug("Preparing iDenfy verification session request", zap.Any("request", req))
 	err = c.client.Do(req, resp)
 	if err != nil {
 		return models.Token{}, fmt.Errorf("error sending request: %w", err)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
-		fmt.Println("response", resp)
 		return models.Token{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
 	}
-	fmt.Println(string(resp.Body()))
+	c.logger.Debug("Received response from iDenfy", zap.Any("response", resp))
 
 	var result models.Token
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {
 		return models.Token{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	fmt.Println(result)
 	return result, nil
 }
 
 // verify signature of the callback
 func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHeader string) error {
-	fmt.Println("start verifying callback signature")
 	if len(c.callbackSignKey) < 1 {
 		return errors.New("callback was received but no signature key was provided")
 	}
@@ -102,8 +103,6 @@ func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHe
 	if !hmac.Equal(sig, mac.Sum(nil)) {
 		return errors.New("signature verification failed")
 	}
-	fmt.Println("signature verified")
-
 	return nil
 }
 

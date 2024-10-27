@@ -1,8 +1,6 @@
 package server
 
 import (
-	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -15,6 +13,7 @@ import (
 	"example.com/tfgrid-kyc-service/internal/clients/substrate"
 	"example.com/tfgrid-kyc-service/internal/configs"
 	"example.com/tfgrid-kyc-service/internal/handlers"
+	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/middleware"
 	"example.com/tfgrid-kyc-service/internal/repository"
 	"example.com/tfgrid-kyc-service/internal/services"
@@ -24,18 +23,19 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/storage/mongodb"
 	"github.com/gofiber/swagger"
+	"go.uber.org/zap"
 )
 
 // implement server struct that have fiber app and config
 type Server struct {
 	app    *fiber.App
 	config *configs.Config
+	logger *logger.Logger
 }
 
-func New(config *configs.Config) *Server {
+func New(config *configs.Config, logger *logger.Logger) *Server {
 	// debug log
 	app := fiber.New()
-
 	// Setup Limter Config and store
 	ipLimiterstore := mongodb.New(mongodb.Config{
 		ConnectionURI: config.MongoDB.URI,
@@ -48,7 +48,7 @@ func New(config *configs.Config) *Server {
 		Expiration:             time.Duration(config.IPLimiter.TokenExpiration) * time.Minute,
 		SkipFailedRequests:     false,
 		SkipSuccessfulRequests: false,
-		Store:                  ipLimiterstore,
+		Storage:                ipLimiterstore,
 		// skip the limiter for localhost
 		Next: func(c *fiber.Ctx) bool {
 			return c.IP() == "127.0.0.1"
@@ -98,15 +98,17 @@ func New(config *configs.Config) *Server {
 		Expiration:             time.Duration(config.IDLimiter.TokenExpiration) * time.Minute,
 		SkipFailedRequests:     false,
 		SkipSuccessfulRequests: false,
-		Store:                  idLimiterStore,
+		Storage:                idLimiterStore,
 		// Use client id as key to limit the number of requests per client
 		KeyGenerator: func(c *fiber.Ctx) string {
 			return c.Get("X-Client-ID")
 		},
 	}
-	// print limtters config
-	fmt.Printf("IP Limiter Config: %+v\n", ipLimiterConfig)
-	fmt.Printf("ID Limiter Config: %+v\n", idLimiterConfig)
+
+	logger.Info("Limiter configurations",
+		zap.Any("ipLimiter", ipLimiterConfig),
+		zap.Any("idLimiter", idLimiterConfig),
+	)
 
 	// Global middlewares
 	app.Use(middleware.Logger())
@@ -117,29 +119,25 @@ func New(config *configs.Config) *Server {
 	// Database connection
 	db, err := repository.ConnectToMongoDB(config.MongoDB.URI)
 	if err != nil {
-		log.Fatalf("Failed to connect to MongoDB: %v", err)
+		logger.Fatal("Failed to connect to MongoDB", zap.Error(err))
 	}
 	database := db.Database(config.MongoDB.DatabaseName)
 
 	// Initialize repositories
-	tokenRepo := repository.NewMongoTokenRepository(database)
-	verificationRepo := repository.NewMongoVerificationRepository(database)
+	tokenRepo := repository.NewMongoTokenRepository(database, logger)
+	verificationRepo := repository.NewMongoVerificationRepository(database, logger)
 
 	// Initialize services
-	idenfyClient := idenfy.New(config.Idenfy)
+	idenfyClient := idenfy.New(config.Idenfy, logger)
 
+	substrateClient, err := substrate.New(config.TFChain, logger)
 	if err != nil {
-		log.Fatalf("Failed to initialize idenfy client: %v", err)
+		logger.Fatal("Failed to initialize substrate client", zap.Error(err))
 	}
-
-	substrateClient, err := substrate.New(config.TFChain)
-	if err != nil {
-		log.Fatalf("Failed to initialize substrate client: %v", err)
-	}
-	kycService := services.NewKYCService(verificationRepo, tokenRepo, idenfyClient, substrateClient, &config.Verification)
+	kycService := services.NewKYCService(verificationRepo, tokenRepo, idenfyClient, substrateClient, &config.Verification, logger)
 
 	// Initialize handler
-	handler := handlers.NewHandler(kycService)
+	handler := handlers.NewHandler(kycService, logger)
 
 	// Routes
 	app.Get("/docs/*", swagger.HandlerDefault)
@@ -162,19 +160,18 @@ func (s *Server) Start() {
 	// Start server
 	go func() {
 		if err := s.app.Listen(":" + s.config.Server.Port); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
+			s.logger.Fatal("Failed to start server", zap.Error(err))
 		}
 	}()
-
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down server...")
+	s.logger.Info("Shutting down server...")
 
 	if err := s.app.Shutdown(); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		s.logger.Fatal("Server forced to shutdown", zap.Error(err))
 	}
 
-	log.Println("Server exiting")
+	s.logger.Info("Server exiting")
 }

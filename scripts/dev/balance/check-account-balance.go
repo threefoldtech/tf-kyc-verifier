@@ -6,6 +6,7 @@ import (
 
 	"example.com/tfgrid-kyc-service/internal/clients/substrate"
 	"example.com/tfgrid-kyc-service/internal/configs"
+	"example.com/tfgrid-kyc-service/internal/logger"
 )
 
 func main() {
@@ -13,7 +14,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	substrateClient, err := substrate.New(config.TFChain)
+	logger.Init(config.Log)
+	logger := logger.GetLogger()
+	substrateClient, err := substrate.New(config.TFChain, logger)
 	if err != nil {
 		panic(err)
 	}

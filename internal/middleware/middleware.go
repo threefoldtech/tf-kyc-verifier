@@ -44,7 +44,6 @@ func AuthMiddleware(challengeWindow int64) fiber.Handler {
 				"error": err.Error(),
 			})
 		}
-		fmt.Println("✔️ challenge is valid")
 		// Verify the signature
 		err = VerifySubstrateSignature(clientID, signature, challenge)
 		if err != nil {
@@ -53,7 +52,6 @@ func AuthMiddleware(challengeWindow int64) fiber.Handler {
 			})
 		}
 
-		fmt.Println("✔️ signature is valid")
 		return c.Next()
 	}
 }

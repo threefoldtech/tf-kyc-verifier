@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,20 +13,19 @@ import (
 
 type MongoVerificationRepository struct {
 	collection *mongo.Collection
+	logger     *logger.Logger
 }
 
-func NewMongoVerificationRepository(db *mongo.Database) VerificationRepository {
+func NewMongoVerificationRepository(db *mongo.Database, logger *logger.Logger) VerificationRepository {
 	return &MongoVerificationRepository{
 		collection: db.Collection("verifications"),
+		logger:     logger,
 	}
 }
 
 func (r *MongoVerificationRepository) SaveVerification(ctx context.Context, verification *models.Verification) error {
-	fmt.Println("start saving verification to the database")
 	verification.CreatedAt = time.Now()
 	_, err := r.collection.InsertOne(ctx, verification)
-	fmt.Println(err)
-	fmt.Println("end saving verification to the database")
 	return err
 }
 

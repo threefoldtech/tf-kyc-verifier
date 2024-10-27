@@ -5,7 +5,9 @@ import (
 
 	_ "example.com/tfgrid-kyc-service/api/docs"
 	"example.com/tfgrid-kyc-service/internal/configs"
+	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/server"
+	"go.uber.org/zap"
 )
 
 //	@title			TFGrid KYC API
@@ -23,7 +25,13 @@ func main() {
 		log.Fatal("Failed to load configuration:", err)
 	}
 
-	server := server.New(config)
+	logger.Init(config.Log)
+	logger := logger.GetLogger()
+	defer logger.Sync()
 
+	logger.Debug("Configuration loaded successfully", zap.Any("config", config))
+
+	server := server.New(config, logger)
+	logger.Info("Starting server on port:", zap.String("port", config.Server.Port))
 	server.Start()
 }
