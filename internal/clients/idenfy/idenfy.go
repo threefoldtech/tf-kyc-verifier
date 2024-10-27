@@ -101,6 +101,7 @@ func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHe
 	mac.Write(body)
 
 	if !hmac.Equal(sig, mac.Sum(nil)) {
+		c.logger.Error("Signature verification failed", zap.String("sigHeader", sigHeader), zap.String("key", string(c.callbackSignKey)), zap.String("mac", hex.EncodeToString(mac.Sum(nil))))
 		return errors.New("signature verification failed")
 	}
 	return nil

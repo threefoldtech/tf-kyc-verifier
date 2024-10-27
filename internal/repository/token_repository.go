@@ -60,14 +60,7 @@ func (r *MongoTokenRepository) GetToken(ctx context.Context, clientID string) (*
 		}
 		return nil, err
 	}
-	// calculate duration between createdAt and now then updae expiry time with remaining time
-	duration := time.Since(token.CreatedAt)
-	// protect against overflow
-	if duration >= time.Duration(token.ExpiryTime)*time.Second {
-		return nil, nil
-	}
-	remainingTime := time.Duration(token.ExpiryTime)*time.Second - duration
-	token.ExpiryTime = int(remainingTime.Seconds())
+
 	return &token, nil
 }
 

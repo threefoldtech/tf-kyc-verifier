@@ -7,33 +7,45 @@ import (
 )
 
 type Verification struct {
-	ID                    primitive.ObjectID `bson:"_id,omitempty"`
-	Final                 bool               `bson:"final"`
-	Platform              string             `bson:"platform"`
-	Status                Status             `bson:"status"`
-	Data                  PersonData         `bson:"data"`
-	FileUrls              map[string]string  `bson:"fileUrls"`
-	AdditionalStepPdfUrls map[string]string  `bson:"additionalStepPdfUrls"`
-	AML                   []AMLCheck         `bson:"AML"`
-	LID                   interface{}        `bson:"LID"`
-	ScanRef               string             `bson:"scanRef"`
-	ExternalRef           string             `bson:"externalRef"`
-	ClientID              string             `bson:"clientId"`
-	StartTime             int64              `bson:"startTime"`
-	FinishTime            int64              `bson:"finishTime"`
-	ClientIP              string             `bson:"clientIp"`
-	ClientIPCountry       string             `bson:"clientIpCountry"`
-	ClientLocation        string             `bson:"clientLocation"`
-	ManualAddress         interface{}        `bson:"manualAddress"`
-	ManualAddressMatch    bool               `bson:"manualAddressMatch"`
-	RegistryCenterCheck   interface{}        `bson:"registryCenterCheck"`
-	AddressVerification   interface{}        `bson:"addressVerification"`
-	QuestionnaireAnswers  interface{}        `bson:"questionnaireAnswers"`
-	CompanyID             interface{}        `bson:"companyId"`
-	BeneficiaryID         interface{}        `bson:"beneficiaryId"`
-	AdditionalSteps       map[string]string  `bson:"additionalSteps"`
-	CreatedAt             time.Time          `bson:"createdAt"`
+	ID                    primitive.ObjectID `bson:"_id,omitempty" json:"-"`
+	CreatedAt             time.Time          `bson:"createdAt" json:"-"`
+	Final                 *bool              `bson:"final" json:"final"`                     // required
+	Platform              Platform           `bson:"platform" json:"platform"`               // required
+	Status                Status             `bson:"status" json:"status"`                   // required
+	Data                  PersonData         `bson:"data" json:"data"`                       // required
+	FileUrls              map[string]string  `bson:"fileUrls" json:"fileUrls"`               // required
+	IdenfyRef             string             `bson:"idenfyRef" json:"scanRef"`               // required
+	ClientID              string             `bson:"clientId" json:"clientId"`               // required
+	StartTime             int64              `bson:"startTime" json:"startTime"`             // required
+	FinishTime            int64              `bson:"finishTime" json:"finishTime"`           // required
+	ClientIP              string             `bson:"clientIp" json:"clientIp"`               // required
+	ClientIPCountry       string             `bson:"clientIpCountry" json:"clientIpCountry"` // required
+	ClientLocation        string             `bson:"clientLocation" json:"clientLocation"`   // required
+	CompanyID             string             `bson:"companyId" json:"companyId"`             // required
+	BeneficiaryID         string             `bson:"beneficiaryId" json:"beneficiaryId"`     // required
+	RegistryCenterCheck   interface{}        `json:"registryCenterCheck,omitempty"`
+	AddressVerification   interface{}        `json:"addressVerification,omitempty"`
+	QuestionnaireAnswers  interface{}        `json:"questionnaireAnswers,omitempty"`
+	AdditionalSteps       map[string]string  `json:"additionalSteps,omitempty"`
+	UtilityData           []string           `json:"utilityData,omitempty"`
+	AdditionalStepPdfUrls map[string]string  `json:"additionalStepPdfUrls,omitempty"`
+	AML                   []AMLCheck         `bson:"AML" json:"AML,omitempty"`
+	LID                   []LID              `bson:"LID" json:"LID,omitempty"`
+	ExternalRef           string             `bson:"externalRef" json:"externalRef,omitempty"`
+	ManualAddress         string             `bson:"manualAddress" json:"manualAddress,omitempty"`
+	ManualAddressMatch    *bool              `bson:"manualAddressMatch" json:"manualAddressMatch,omitempty"`
 }
+
+type Platform string
+
+const (
+	PlatformPC        Platform = "PC"
+	PlatformMobile    Platform = "MOBILE"
+	PlatformTablet    Platform = "TABLET"
+	PlatformMobileApp Platform = "MOBILE_APP"
+	PlatformMobileSDK Platform = "MOBILE_SDK"
+	PlatformOther     Platform = "OTHER"
+)
 
 type Overall string
 
@@ -41,25 +53,57 @@ const (
 	OverallApproved  Overall = "APPROVED"
 	OverallDenied    Overall = "DENIED"
 	OverallSuspected Overall = "SUSPECTED"
+	OverallReviewing Overall = "REVIEWING"
 	OverallExpired   Overall = "EXPIRED"
+	OverallActive    Overall = "ACTIVE"
+	OverallDeleted   Overall = "DELETED"
+	OverallArchived  Overall = "ARCHIVED"
 )
 
 type Status struct {
-	Overall            Overall  `bson:"overall"`
-	SuspicionReasons   []string `bson:"suspicionReasons"`
-	DenyReasons        []string `bson:"denyReasons"`
-	FraudTags          []string `bson:"fraudTags"`
-	MismatchTags       []string `bson:"mismatchTags"`
-	AutoFace           string   `bson:"autoFace"`
-	ManualFace         string   `bson:"manualFace"`
-	AutoDocument       string   `bson:"autoDocument"`
-	ManualDocument     string   `bson:"manualDocument"`
-	AdditionalSteps    string   `bson:"additionalSteps"`
-	AMLResultClass     string   `bson:"amlResultClass"`
-	PEPSStatus         string   `bson:"pepsStatus"`
-	SanctionsStatus    string   `bson:"sanctionsStatus"`
-	AdverseMediaStatus string   `bson:"adverseMediaStatus"`
+	Overall            *Overall          `bson:"overall" json:"overall"`
+	SuspicionReasons   []SuspicionReason `bson:"suspicionReasons" json:"suspicionReasons"`
+	DenyReasons        []string          `bson:"denyReasons" json:"denyReasons"`
+	FraudTags          []string          `bson:"fraudTags" json:"fraudTags"`
+	MismatchTags       []string          `bson:"mismatchTags" json:"mismatchTags"`
+	AutoFace           string            `bson:"autoFace" json:"autoFace,omitempty"`
+	ManualFace         string            `bson:"manualFace" json:"manualFace,omitempty"`
+	AutoDocument       string            `bson:"autoDocument" json:"autoDocument,omitempty"`
+	ManualDocument     string            `bson:"manualDocument" json:"manualDocument,omitempty"`
+	AdditionalSteps    *AdditionalStep   `bson:"additionalSteps" json:"additionalSteps,omitempty"`
+	AMLResultClass     string            `bson:"amlResultClass" json:"amlResultClass,omitempty"`
+	PEPSStatus         string            `bson:"pepsStatus" json:"pepsStatus,omitempty"`
+	SanctionsStatus    string            `bson:"sanctionsStatus" json:"sanctionsStatus,omitempty"`
+	AdverseMediaStatus string            `bson:"adverseMediaStatus" json:"adverseMediaStatus,omitempty"`
 }
+
+type SuspicionReason string
+
+const (
+	SuspicionFaceSuspected       SuspicionReason = "FACE_SUSPECTED"
+	SuspicionFaceBlacklisted     SuspicionReason = "FACE_BLACKLISTED"
+	SuspicionDocFaceBlacklisted  SuspicionReason = "DOC_FACE_BLACKLISTED"
+	SuspicionDocMobilePhoto      SuspicionReason = "DOC_MOBILE_PHOTO"
+	SuspicionDevToolsOpened      SuspicionReason = "DEV_TOOLS_OPENED"
+	SuspicionDocPrintSpoofed     SuspicionReason = "DOC_PRINT_SPOOFED"
+	SuspicionFakePhoto           SuspicionReason = "FAKE_PHOTO"
+	SuspicionAMLSuspection       SuspicionReason = "AML_SUSPECTION"
+	SuspicionAMLFailed           SuspicionReason = "AML_FAILED"
+	SuspicionLIDSuspection       SuspicionReason = "LID_SUSPECTION"
+	SuspicionLIDFailed           SuspicionReason = "LID_FAILED"
+	SuspicionSanctionsSuspection SuspicionReason = "SANCTIONS_SUSPECTION"
+	SuspicionSanctionsFailed     SuspicionReason = "SANCTIONS_FAILED"
+	SuspicionRCFailed            SuspicionReason = "RC_FAILED"
+	SuspicionAutoUnverifiable    SuspicionReason = "AUTO_UNVERIFIABLE"
+)
+
+type AdditionalStep string
+
+const (
+	AdditionalStepValid    AdditionalStep = "VALID"
+	AdditionalStepInvalid  AdditionalStep = "INVALID"
+	AdditionalStepNotFound AdditionalStep = "NOT_FOUND"
+)
 
 type DocumentType string
 
@@ -105,58 +149,50 @@ const (
 )
 
 type PersonData struct {
-	DocFirstName           string       `bson:"docFirstName"`
-	DocLastName            string       `bson:"docLastName"`
-	DocNumber              string       `bson:"docNumber"`
-	DocPersonalCode        string       `bson:"docPersonalCode"`
-	DocExpiry              string       `bson:"docExpiry"`
-	DocDOB                 string       `bson:"docDob"`
-	DocDateOfIssue         string       `bson:"docDateOfIssue"`
-	DocType                DocumentType `bson:"docType"`
-	DocSex                 Sex          `bson:"docSex"`
-	DocNationality         string       `bson:"docNationality"`
-	DocIssuingCountry      string       `bson:"docIssuingCountry"`
-	BirthPlace             string       `bson:"birthPlace"`
-	Authority              string       `bson:"authority"`
-	Address                string       `bson:"address"`
-	DocTemporaryAddress    string       `bson:"docTemporaryAddress"`
-	MothersMaidenName      string       `bson:"mothersMaidenName"`
-	DocBirthName           string       `bson:"docBirthName"`
-	DriverLicenseCategory  string       `bson:"driverLicenseCategory"`
-	ManuallyDataChanged    bool         `bson:"manuallyDataChanged"`
-	FullName               string       `bson:"fullName"`
-	SelectedCountry        string       `bson:"selectedCountry"`
-	OrgFirstName           string       `bson:"orgFirstName"`
-	OrgLastName            string       `bson:"orgLastName"`
-	OrgNationality         string       `bson:"orgNationality"`
-	OrgBirthPlace          string       `bson:"orgBirthPlace"`
-	OrgAuthority           string       `bson:"orgAuthority"`
-	OrgAddress             string       `bson:"orgAddress"`
-	OrgTemporaryAddress    string       `bson:"orgTemporaryAddress"`
-	OrgMothersMaidenName   string       `bson:"orgMothersMaidenName"`
-	OrgBirthName           string       `bson:"orgBirthName"`
-	AgeEstimate            AgeEstimate  `bson:"ageEstimate"`
-	ClientIPProxyRiskLevel string       `bson:"clientIpProxyRiskLevel"`
-	DuplicateFaces         []string     `bson:"duplicateFaces"`
-	DuplicateDocFaces      []string     `bson:"duplicateDocFaces"`
-	AdditionalData         interface{}  `bson:"additionalData"`
+	DocFirstName           string        `bson:"docFirstName" json:"docFirstName"`
+	DocLastName            string        `bson:"docLastName" json:"docLastName"`
+	DocNumber              string        `bson:"docNumber" json:"docNumber"`
+	DocPersonalCode        string        `bson:"docPersonalCode" json:"docPersonalCode"`
+	DocExpiry              string        `bson:"docExpiry" json:"docExpiry"`
+	DocDOB                 string        `bson:"docDob" json:"docDob"`
+	DocDateOfIssue         string        `bson:"docDateOfIssue" json:"docDateOfIssue"`
+	DocType                *DocumentType `bson:"docType" json:"docType"`
+	DocSex                 *Sex          `bson:"docSex" json:"docSex"`
+	DocNationality         string        `bson:"docNationality" json:"docNationality"`
+	DocIssuingCountry      string        `bson:"docIssuingCountry" json:"docIssuingCountry"`
+	BirthPlace             string        `bson:"birthPlace" json:"birthPlace"`
+	Authority              string        `bson:"authority" json:"authority"`
+	Address                string        `bson:"address" json:"address"`
+	DocTemporaryAddress    string        `bson:"docTemporaryAddress" json:"docTemporaryAddress"`
+	MothersMaidenName      string        `bson:"mothersMaidenName" json:"mothersMaidenName"`
+	DocBirthName           string        `bson:"docBirthName" json:"docBirthName"`
+	DriverLicenseCategory  string        `bson:"driverLicenseCategory" json:"driverLicenseCategory"`
+	ManuallyDataChanged    *bool         `bson:"manuallyDataChanged" json:"manuallyDataChanged"`
+	FullName               string        `bson:"fullName" json:"fullName"`
+	SelectedCountry        string        `bson:"selectedCountry" json:"selectedCountry"`
+	OrgFirstName           string        `bson:"orgFirstName" json:"orgFirstName"`
+	OrgLastName            string        `bson:"orgLastName" json:"orgLastName"`
+	OrgNationality         string        `bson:"orgNationality" json:"orgNationality"`
+	OrgBirthPlace          string        `bson:"orgBirthPlace" json:"orgBirthPlace"`
+	OrgAuthority           string        `bson:"orgAuthority" json:"orgAuthority"`
+	OrgAddress             string        `bson:"orgAddress" json:"orgAddress"`
+	OrgTemporaryAddress    string        `bson:"orgTemporaryAddress" json:"orgTemporaryAddress"`
+	OrgMothersMaidenName   string        `bson:"orgMothersMaidenName" json:"orgMothersMaidenName"`
+	OrgBirthName           string        `bson:"orgBirthName" json:"orgBirthName"`
+	AgeEstimate            *AgeEstimate  `bson:"ageEstimate" json:"ageEstimate"`
+	ClientIPProxyRiskLevel string        `bson:"clientIpProxyRiskLevel" json:"clientIpProxyRiskLevel"`
+	DuplicateFaces         []string      `bson:"duplicateFaces" json:"duplicateFaces"`
+	DuplicateDocFaces      []string      `bson:"duplicateDocFaces" json:"duplicateDocFaces"`
+	AdditionalData         interface{}   `bson:"additionalData" json:"additionalData"`
 }
 
 type AMLCheck struct {
-	Status           AMLStatus `bson:"status"`
-	Data             []AMLData `bson:"data"`
-	ServiceName      string    `bson:"serviceName"`
-	ServiceGroupType string    `bson:"serviceGroupType"`
-	UID              string    `bson:"uid"`
-	ErrorMessage     string    `bson:"errorMessage"`
-}
-
-type AMLStatus struct {
-	ServiceSuspected bool   `bson:"serviceSuspected"`
-	ServiceUsed      bool   `bson:"serviceUsed"`
-	ServiceFound     bool   `bson:"serviceFound"`
-	CheckSuccessful  bool   `bson:"checkSuccessful"`
-	OverallStatus    string `bson:"overallStatus"`
+	Status           ServiceStatus `bson:"status"`
+	Data             []AMLData     `bson:"data"`
+	ServiceName      string        `bson:"serviceName"`
+	ServiceGroupType string        `bson:"serviceGroupType"`
+	UID              string        `bson:"uid"`
+	ErrorMessage     string        `bson:"errorMessage"`
 }
 
 type AMLData struct {
@@ -175,9 +211,41 @@ type AMLData struct {
 	CheckDate   string   `bson:"checkDate"`
 }
 
-type VerificationOutcome struct {
-	Final     bool   `bson:"final"`
-	ClientID  string `bson:"clientId"`
-	IdenfyRef string `bson:"idenfyRef"`
-	Outcome   string `bson:"outcome"`
+type LID struct {
+	Status           *ServiceStatus `json:"status"`
+	Data             []LIDData      `json:"data"`
+	ServiceName      string         `json:"serviceName"`
+	ServiceGroupType string         `json:"serviceGroupType"`
+	UID              string         `json:"uid"`
+	ErrorMessage     string         `json:"errorMessage"`
 }
+
+type LIDData struct {
+	DocumentNumber string        `json:"documentNumber"`
+	DocumentType   *DocumentType `json:"documentType"`
+	Valid          *bool         `json:"valid"`
+	ExpiryDate     string        `json:"expiryDate"`
+	CheckDate      string        `json:"checkDate"`
+}
+
+type ServiceStatus struct {
+	ServiceSuspected *bool  `json:"serviceSuspected" bson:"serviceSuspected"`
+	CheckSuccessful  *bool  `json:"checkSuccessful" bson:"checkSuccessful"`
+	ServiceFound     *bool  `json:"serviceFound" bson:"serviceFound"`
+	ServiceUsed      *bool  `json:"serviceUsed" bson:"serviceUsed"`
+	OverallStatus    string `json:"overallStatus" bson:"overallStatus"`
+}
+
+type VerificationOutcome struct {
+	Final     *bool   `bson:"final"`
+	ClientID  string  `bson:"clientId"`
+	IdenfyRef string  `bson:"idenfyRef"`
+	Outcome   Outcome `bson:"outcome"`
+}
+
+type Outcome string
+
+const (
+	OutcomeApproved Outcome = "APPROVED"
+	OutcomeRejected Outcome = "REJECTED"
+)

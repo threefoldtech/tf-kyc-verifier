@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"time"
 
 	"example.com/tfgrid-kyc-service/internal/clients/idenfy"
 	"example.com/tfgrid-kyc-service/internal/clients/substrate"
@@ -45,10 +46,16 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 		s.logger.Error("Error getting token from database", zap.String("clientID", clientID), zap.Error(err))
 		return nil, false, err
 	}
-	// check if token is not nil and not expired or near expiry (2 min)
-	if token != nil { //&& time.Since(token.CreatedAt)+2*time.Minute < time.Duration(token.ExpiryTime)*time.Second {
-		return token, false, nil
+	// check if token is found and not expired
+	if token != nil {
+		duration := time.Since(token.CreatedAt)
+		if duration < time.Duration(token.ExpiryTime)*time.Second {
+			remainingTime := time.Duration(token.ExpiryTime)*time.Second - duration
+			token.ExpiryTime = int(remainingTime.Seconds())
+			return token, false, nil
+		}
 	}
+
 	// check if user account balance satisfies the minimum required balance, return an error if not
 	hasRequiredBalance, err := s.AccountHasRequiredBalance(ctx, clientID)
 	if err != nil {
@@ -111,12 +118,12 @@ func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string)
 		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
 		return nil, err
 	}
-	var outcome string
+	var outcome models.Outcome
 	if verification != nil {
-		if verification.Status.Overall == "APPROVED" || (s.config.SuspiciousVerificationOutcome == "APPROVED" && verification.Status.Overall == "SUSPECTED") {
-			outcome = "APPROVED"
+		if verification.Status.Overall != nil && *verification.Status.Overall == models.OverallApproved || (s.config.SuspiciousVerificationOutcome == "APPROVED" && *verification.Status.Overall == models.OverallSuspected) {
+			outcome = models.OutcomeApproved
 		} else {
-			outcome = "REJECTED"
+			outcome = models.OutcomeRejected
 		}
 	} else {
 		return nil, nil
@@ -124,7 +131,7 @@ func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string)
 	return &models.VerificationOutcome{
 		Final:     verification.Final,
 		ClientID:  clientID,
-		IdenfyRef: verification.ScanRef,
+		IdenfyRef: verification.IdenfyRef,
 		Outcome:   outcome,
 	}, nil
 }
@@ -146,15 +153,15 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 		return err
 	}
 	// delete the token with the same clientID and same scanRef
-	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.ScanRef)
+	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.IdenfyRef)
 	if err != nil {
-		s.logger.Warn("Error deleting verification token from database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.ScanRef), zap.Error(err))
+		s.logger.Warn("Error deleting verification token from database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))
 	}
 	// if the verification status is EXPIRED, we don't need to save it
-	if result.Status.Overall != "EXPIRED" {
+	if result.Status.Overall != nil && *result.Status.Overall != models.Overall("EXPIRED") {
 		err = s.verificationRepo.SaveVerification(ctx, &result)
 		if err != nil {
-			s.logger.Error("Error saving verification to database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.ScanRef), zap.Error(err))
+			s.logger.Error("Error saving verification to database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))
 			return err
 		}
 	}
@@ -174,5 +181,5 @@ func (s *kycService) IsUserVerified(ctx context.Context, clientID string) (bool,
 	if verification == nil {
 		return false, nil
 	}
-	return verification.Status.Overall == "APPROVED" || (s.config.SuspiciousVerificationOutcome == "APPROVED" && verification.Status.Overall == "SUSPECTED"), nil
+	return verification.Status.Overall != nil && (*verification.Status.Overall == models.OverallApproved || (s.config.SuspiciousVerificationOutcome == "APPROVED" && *verification.Status.Overall == models.OverallSuspected)), nil
 }

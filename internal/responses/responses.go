@@ -30,6 +30,13 @@ type TokenResponse struct {
 	TokenType     string `json:"tokenType"`
 }
 
+type Outcome string
+
+const (
+	OutcomeVerified Outcome = "VERIFIED"
+	OutcomeRejected Outcome = "REJECTED"
+)
+
 type VerificationStatusResponse struct {
 	Final     bool    `json:"final"`
 	IdenfyRef string  `json:"idenfyRef"`
@@ -56,7 +63,7 @@ type VerificationDataResponse struct {
 	Address                string      `json:"address"`
 	MotherMaidenName       string      `json:"mothersMaidenName"`
 	DriverLicenseCategory  string      `json:"driverLicenseCategory"`
-	ManuallyDataChanged    bool        `json:"manuallyDataChanged"`
+	ManuallyDataChanged    *bool       `json:"manuallyDataChanged"`
 	FullName               string      `json:"fullName"`
 	OrgFirstName           string      `json:"orgFirstName"`
 	OrgLastName            string      `json:"orgLastName"`
@@ -74,11 +81,10 @@ type VerificationDataResponse struct {
 	DuplicateDocFaces      []string    `json:"duplicateDocFaces"`
 	AddressVerification    interface{} `json:"addressVerification"`
 	AdditionalData         interface{} `json:"additionalData"`
-	ScanRef                string      `json:"scanRef"`
+	IdenfyRef              string      `json:"idenfyRef"`
 	ClientID               string      `json:"clientId"`
 }
 
-// implement from() method for TokenResponseWithStatus
 func NewTokenResponseWithStatus(token *models.Token, isNewToken bool) *TokenResponse {
 	message := "Existing valid token retrieved."
 	if isNewToken {
@@ -96,27 +102,13 @@ func NewTokenResponseWithStatus(token *models.Token, isNewToken bool) *TokenResp
 	}
 }
 
-// Outcome enum can be VERIFIED or REJECTED
-type Outcome string
-
-const (
-	OutcomeVerified Outcome = "VERIFIED"
-	OutcomeRejected Outcome = "REJECTED"
-)
-
 func NewVerificationStatusResponse(verificationOutcome *models.VerificationOutcome) *VerificationStatusResponse {
 	outcome := OutcomeVerified
 	if verificationOutcome.Outcome == "REJECTED" {
 		outcome = OutcomeRejected
 	}
 	return &VerificationStatusResponse{
-		/* 		FraudTags:      verification.Status.FraudTags,
-		   		MismatchTags:   verification.Status.MismatchTags,
-		   		AutoDocument:   verification.Status.AutoDocument,
-		   		ManualDocument: verification.Status.ManualDocument,
-		   		AutoFace:       verification.Status.AutoFace,
-		   		ManualFace:     verification.Status.ManualFace, */
-		Final:     verificationOutcome.Final,
+		Final:     *verificationOutcome.Final,
 		IdenfyRef: verificationOutcome.IdenfyRef,
 		ClientID:  verificationOutcome.ClientID,
 		Status:    outcome,
@@ -124,6 +116,22 @@ func NewVerificationStatusResponse(verificationOutcome *models.VerificationOutco
 }
 
 func NewVerificationDataResponse(verification *models.Verification) *VerificationDataResponse {
+	var docType string
+	if verification.Data.DocType != nil {
+		docType = string(*verification.Data.DocType)
+	}
+	var docSex string
+	if verification.Data.DocSex != nil {
+		docSex = string(*verification.Data.DocSex)
+	}
+	var manuallyDataChanged *bool
+	if verification.Data.ManuallyDataChanged != nil {
+		manuallyDataChanged = verification.Data.ManuallyDataChanged
+	}
+	var ageEstimate string
+	if verification.Data.AgeEstimate != nil {
+		ageEstimate = string(*verification.Data.AgeEstimate)
+	}
 	return &VerificationDataResponse{
 		DocFirstName:           verification.Data.DocFirstName,
 		DocLastName:            verification.Data.DocLastName,
@@ -132,8 +140,8 @@ func NewVerificationDataResponse(verification *models.Verification) *Verificatio
 		DocExpiry:              verification.Data.DocExpiry,
 		DocDob:                 verification.Data.DocDOB,
 		DocDateOfIssue:         verification.Data.DocDateOfIssue,
-		DocType:                string(verification.Data.DocType),
-		DocSex:                 string(verification.Data.DocSex),
+		DocType:                docType,
+		DocSex:                 docSex,
 		DocNationality:         verification.Data.DocNationality,
 		DocIssuingCountry:      verification.Data.DocIssuingCountry,
 		DocTemporaryAddress:    verification.Data.DocTemporaryAddress,
@@ -142,7 +150,7 @@ func NewVerificationDataResponse(verification *models.Verification) *Verificatio
 		Authority:              verification.Data.Authority,
 		MotherMaidenName:       verification.Data.MothersMaidenName,
 		DriverLicenseCategory:  verification.Data.DriverLicenseCategory,
-		ManuallyDataChanged:    verification.Data.ManuallyDataChanged,
+		ManuallyDataChanged:    manuallyDataChanged,
 		FullName:               verification.Data.FullName,
 		OrgFirstName:           verification.Data.OrgFirstName,
 		OrgLastName:            verification.Data.OrgLastName,
@@ -154,13 +162,13 @@ func NewVerificationDataResponse(verification *models.Verification) *Verificatio
 		OrgMothersMaidenName:   verification.Data.OrgMothersMaidenName,
 		OrgBirthName:           verification.Data.OrgBirthName,
 		SelectedCountry:        verification.Data.SelectedCountry,
-		AgeEstimate:            string(verification.Data.AgeEstimate),
+		AgeEstimate:            ageEstimate,
 		ClientIpProxyRiskLevel: verification.Data.ClientIPProxyRiskLevel,
 		DuplicateFaces:         verification.Data.DuplicateFaces,
 		DuplicateDocFaces:      verification.Data.DuplicateDocFaces,
 		AddressVerification:    verification.AddressVerification,
 		AdditionalData:         verification.Data.AdditionalData,
-		ScanRef:                verification.ScanRef,
+		IdenfyRef:              verification.IdenfyRef,
 		ClientID:               verification.ClientID,
 	}
 }
