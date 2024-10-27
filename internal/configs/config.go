@@ -2,159 +2,59 @@ package configs
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/spf13/viper"
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
-	// DB
-	MongoURI     string `mapstructure:"mongo_uri"`
-	DatabaseName string `mapstructure:"database_name"`
-	// Server
-	Port string `mapstructure:"port"`
-	// Idenfy
-	Idenfy IdenfyConfig `mapstructure:"idenfy"`
-	// TFChain
-	TFChain TFChainConfig `mapstructure:"tfchain"`
-	// IP limiter
-	IPLimiter LimiterConfig `mapstructure:"ip_limiter"`
-	// Client limiter
-	IDLimiter LimiterConfig `mapstructure:"id_limiter"`
-	// Verification
-	Verification VerificationConfig `mapstructure:"verification"`
-	// Other
-	ChallengeWindow int64 `mapstructure:"challenge_window"`
+	MongoDB         MongoDB
+	Server          Server
+	Idenfy          Idenfy
+	TFChain         TFChain
+	Verification    Verification
+	IPLimiter       IPLimiter
+	IDLimiter       IDLimiter
+	ChallengeWindow int64 `env:"CHALLENGE_WINDOW" env-default:"8"`
 }
 
-type IdenfyConfig struct {
-	APIKey          string   `mapstructure:"api_key"`
-	APISecret       string   `mapstructure:"api_secret"`
-	BaseURL         string   `mapstructure:"base_url"`
-	CallbackSignKey string   `mapstructure:"callback_sign_key"`
-	WhitelistedIPs  []string `mapstructure:"whitelisted_ips,omitempty"`
-	DevMode         bool     `mapstructure:"dev_mode"`
+type MongoDB struct {
+	URI          string `env:"MONGO_URI" env-default:"mongodb://localhost:27017"`
+	DatabaseName string `env:"DATABASE_NAME" env-default:"tfgrid-kyc-db"`
 }
-
-type TFChainConfig struct {
-	WsProviderURL string `mapstructure:"ws_provider_url"`
+type Server struct {
+	Port string `env:"PORT" env-default:"8080"`
 }
-
-type VerificationConfig struct {
-	SuspiciousVerificationOutcome string `mapstructure:"suspicious_verification_outcome"`
-	ExpiredDocumentOutcome        string `mapstructure:"expired_document_outcome"`
-	MinBalanceToVerifyAccount     uint64 `mapstructure:"min_balance_to_verify_account"`
+type Idenfy struct {
+	APIKey          string   `env:"IDENFY_API_KEY" env-required:"true"`
+	APISecret       string   `env:"IDENFY_API_SECRET" env-required:"true"`
+	BaseURL         string   `env:"IDENFY_BASE_URL" env-default:"https://ivs.idenfy.com"`
+	CallbackSignKey string   `env:"IDENFY_CALLBACK_SIGN_KEY" env-required:"true"`
+	WhitelistedIPs  []string `env:"IDENFY_WHITELISTED_IPS" env-separator:","`
+	DevMode         bool     `env:"IDENFY_DEV_MODE" env-default:"false"`
 }
-
-type LimiterConfig struct {
-	MaxTokenRequests int `mapstructure:"max_token_requests"`
-	TokenExpiration  int `mapstructure:"token_expiration"`
+type TFChain struct {
+	WsProviderURL string `env:"TFCHAIN_WS_PROVIDER_URL" env-default:"wss://tfchain.grid.tf"`
+}
+type Verification struct {
+	SuspiciousVerificationOutcome string `env:"SUSPICIOUS_VERIFICATION_OUTCOME" env-default:"verified"`
+	ExpiredDocumentOutcome        string `env:"EXPIRED_DOCUMENT_OUTCOME" env-default:"unverified"`
+	MinBalanceToVerifyAccount     uint64 `env:"MIN_BALANCE_TO_VERIFY_ACCOUNT" env-default:"10000000"`
+}
+type IPLimiter struct {
+	MaxTokenRequests int `env:"IP_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
+	TokenExpiration  int `env:"IP_LIMITER_TOKEN_EXPIRATION" env-default:"24"`
+}
+type IDLimiter struct {
+	MaxTokenRequests int `env:"ID_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
+	TokenExpiration  int `env:"ID_LIMITER_TOKEN_EXPIRATION" env-default:"24"`
 }
 
 func LoadConfig() (*Config, error) {
-	// replacer
-
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-	err := viper.BindEnv("mongo_uri")
+	cfg := &Config{}
+	err := cleanenv.ReadEnv(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
+		return nil, fmt.Errorf("error loading config: %w", err)
 	}
-	err = viper.BindEnv("database_name")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("port")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("idenfy.api_key")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("idenfy.api_secret")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("idenfy.base_url")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("idenfy.callback_sign_key")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("idenfy.whitelisted_ips")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("tfchain.ws_provider_url")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("suspicious_verification_outcome")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("expired_document_outcome")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("challenge_window")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("verification.min_balance_to_verify_account")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("verification.suspicious_verification_outcome")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("verification.expired_document_outcome")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("ip_limiter.max_token_requests")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("ip_limiter.token_expiration")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("id_limiter.max_token_requests")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("id_limiter.token_expiration")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-	err = viper.BindEnv("idenfy.dev_mode")
-	if err != nil {
-		return nil, fmt.Errorf("error binding env variable: %w", err)
-	}
-
-	// Set default values
-	// viper.SetDefault("port", "8080")
-	// viper.SetDefault("max_token_requests_per_minute", 4)
-	// viper.SetDefault("suspicious_verification_outcome", "verified")
-	// viper.SetDefault("expired_document_outcome", "unverified")
-	// viper.SetDefault("mongo_uri", "mongodb://localhost:27017")
-	// viper.SetDefault("database_name", "tfgrid-kyc-db")
-	// viper.SetDefault("idenfy.base_url", "https://ivs.idenfy.com")
-	// viper.SetDefault("tfchain.ws_provider_url", "wss://tfchain.grid.tf")
-	// viper.SetDefault("min_balance_to_verify_account", 10000000)
-	// viper.SetDefault("challenge_window", 120)
-
-	var config Config
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode into struct: %w", err)
-	}
-
-	fmt.Printf("%+v\n", config)
-	return &config, nil
+	fmt.Printf("%+v\n", cfg)
+	return cfg, nil
 }

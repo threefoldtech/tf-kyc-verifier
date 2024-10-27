@@ -18,7 +18,7 @@ type Substrate struct {
 	mu  sync.Mutex // TODO: Check if SubstrateAPI is thread safe
 }
 
-func New(config configs.TFChainConfig) (*Substrate, error) {
+func New(config configs.TFChain) (*Substrate, error) {
 	mgr := tfchain.NewManager(config.WsProviderURL)
 	api, err := mgr.Substrate()
 	if err != nil {

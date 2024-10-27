@@ -18,10 +18,10 @@ type kycService struct {
 	tokenRepo        repository.TokenRepository
 	idenfy           *idenfy.Idenfy
 	substrate        *substrate.Substrate
-	config           *configs.VerificationConfig
+	config           *configs.Verification
 }
 
-func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.VerificationConfig) KYCService {
+func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Verification) KYCService {
 	return &kycService{verificationRepo: verificationRepo, tokenRepo: tokenRepo, idenfy: idenfy, substrate: substrateClient, config: config}
 }
 

@@ -38,8 +38,8 @@ func New(config *configs.Config) *Server {
 
 	// Setup Limter Config and store
 	ipLimiterstore := mongodb.New(mongodb.Config{
-		ConnectionURI: config.MongoURI,
-		Database:      config.DatabaseName,
+		ConnectionURI: config.MongoDB.URI,
+		Database:      config.MongoDB.DatabaseName,
 		Collection:    "ip_limit",
 		Reset:         false,
 	})
@@ -87,8 +87,8 @@ func New(config *configs.Config) *Server {
 		},
 	}
 	idLimiterStore := mongodb.New(mongodb.Config{
-		ConnectionURI: config.MongoURI,
-		Database:      config.DatabaseName,
+		ConnectionURI: config.MongoDB.URI,
+		Database:      config.MongoDB.DatabaseName,
 		Collection:    "id_limit",
 		Reset:         false,
 	})
@@ -115,11 +115,11 @@ func New(config *configs.Config) *Server {
 	app.Use(helmet.New())
 
 	// Database connection
-	db, err := repository.ConnectToMongoDB(config.MongoURI)
+	db, err := repository.ConnectToMongoDB(config.MongoDB.URI)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
-	database := db.Database(config.DatabaseName)
+	database := db.Database(config.MongoDB.DatabaseName)
 
 	// Initialize repositories
 	tokenRepo := repository.NewMongoTokenRepository(database)
@@ -161,7 +161,7 @@ func New(config *configs.Config) *Server {
 func (s *Server) Start() {
 	// Start server
 	go func() {
-		if err := s.app.Listen(":" + s.config.Port); err != nil {
+		if err := s.app.Listen(":" + s.config.Server.Port); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()

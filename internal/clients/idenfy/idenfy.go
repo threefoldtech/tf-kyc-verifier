@@ -28,7 +28,7 @@ const (
 	VerificationSessionEndpoint = "/api/v2/token"
 )
 
-func New(config configs.IdenfyConfig) *Idenfy {
+func New(config configs.Idenfy) *Idenfy {
 	return &Idenfy{
 		baseURL:         config.BaseURL,
 		client:          &fasthttp.Client{},
