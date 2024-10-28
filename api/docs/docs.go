@@ -67,6 +67,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/responses.VerificationDataResponse"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
@@ -216,6 +222,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/responses.TokenResponse"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
@@ -296,13 +308,30 @@ const docTemplate = `{
         "responses.HealthResponse": {
             "type": "object",
             "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "status": {
-                    "type": "string"
+                    "$ref": "#/definitions/responses.HealthStatus"
                 },
                 "timestamp": {
                     "type": "string"
                 }
             }
+        },
+        "responses.HealthStatus": {
+            "type": "string",
+            "enum": [
+                "Healthy",
+                "Degraded"
+            ],
+            "x-enum-varnames": [
+                "HealthStatusHealthy",
+                "HealthStatusDegraded"
+            ]
         },
         "responses.Outcome": {
             "type": "string",

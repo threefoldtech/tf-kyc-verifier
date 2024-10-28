@@ -7,11 +7,23 @@ definitions:
     type: object
   responses.HealthResponse:
     properties:
+      errors:
+        items:
+          type: string
+        type: array
       status:
-        type: string
+        $ref: '#/definitions/responses.HealthStatus'
       timestamp:
         type: string
     type: object
+  responses.HealthStatus:
+    enum:
+    - Healthy
+    - Degraded
+    type: string
+    x-enum-varnames:
+    - HealthStatusHealthy
+    - HealthStatusDegraded
   responses.Outcome:
     enum:
     - VERIFIED
@@ -173,6 +185,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/responses.VerificationDataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -274,6 +290,10 @@ paths:
           description: New token created
           schema:
             $ref: '#/definitions/responses.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
         "401":
           description: Unauthorized
           schema:

@@ -37,6 +37,7 @@ func NewHandler(kycService services.KYCService, logger *logger.Logger) *Handler 
 // @Param			X-Signature	header		string	true	"hex-encoded sr25519|ed25519 signature"				minlength(128)	maxlength(128)
 // @Success		200			{object}	responses.TokenResponse "Existing token retrieved"
 // @Success		201			{object}	responses.TokenResponse "New token created"
+// @Failure		400			{object}	responses.ErrorResponse
 // @Failure		401			{object}	responses.ErrorResponse
 // @Failure		402			{object}	responses.ErrorResponse
 // @Failure		409			{object}	responses.ErrorResponse
@@ -67,6 +68,7 @@ func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 // @Param			X-Challenge	header		string	true	"hex-encoded message `{api-domain}:{timestamp}`"
 // @Param			X-Signature	header		string	true	"hex-encoded sr25519|ed25519 signature"				minlength(128)	maxlength(128)
 // @Success		200			{object}		responses.VerificationDataResponse
+// @Failure		400			{object}		responses.ErrorResponse
 // @Failure		401			{object}		responses.ErrorResponse
 // @Failure		404			{object}		responses.ErrorResponse
 // @Failure		500			{object}		responses.ErrorResponse
