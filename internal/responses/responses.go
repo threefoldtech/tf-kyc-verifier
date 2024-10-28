@@ -8,9 +8,17 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+type HealthStatus string
+
+const (
+	HealthStatusHealthy  HealthStatus = "Healthy"
+	HealthStatusDegraded HealthStatus = "Degraded"
+)
+
 type HealthResponse struct {
-	Status    string `json:"status"`
-	Timestamp string `json:"timestamp"`
+	Status    HealthStatus `json:"status"`
+	Timestamp string       `json:"timestamp"`
+	Errors    []string     `json:"errors"`
 }
 
 type TokenResponse struct {

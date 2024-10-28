@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"example.com/tfgrid-kyc-service/internal/errors"
+	"example.com/tfgrid-kyc-service/internal/handlers"
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -28,7 +29,7 @@ func AuthMiddleware(challengeWindow int64) fiber.Handler {
 		challenge := c.Get("X-Challenge")
 
 		if clientID == "" || signature == "" || challenge == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Missing authentication credentials",
 			})
 		}
@@ -36,13 +37,22 @@ func AuthMiddleware(challengeWindow int64) fiber.Handler {
 		// Verify the clientID and signature here
 		err := ValidateChallenge(clientID, signature, challenge, "kyc1.gent01.dev.grid.tf", challengeWindow)
 		if err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			// cast error to service error and convert it to http status code
+			serviceError, ok := err.(*errors.ServiceError)
+			if ok {
+				return handlers.HandleServiceError(c, serviceError)
+			}
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": err.Error(),
 			})
 		}
 		// Verify the signature
 		err = VerifySubstrateSignature(clientID, signature, challenge)
 		if err != nil {
+			serviceError, ok := err.(*errors.ServiceError)
+			if ok {
+				return handlers.HandleServiceError(c, serviceError)
+			}
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": err.Error(),
 			})
@@ -59,30 +69,30 @@ func fromHex(hex string) ([]byte, bool) {
 func VerifySubstrateSignature(address, signature, challenge string) error {
 	challengeBytes, success := fromHex(challenge)
 	if !success {
-		return errors.NewAuthorizationError("malformed challenge: failed to decode hex-encoded challenge", nil)
+		return errors.NewValidationError("malformed challenge: failed to decode hex-encoded challenge", nil)
 	}
 	// hex to string
 	sig, success := fromHex(signature)
 	if !success {
-		return errors.NewAuthorizationError("malformed signature: failed to decode hex-encoded signature", nil)
+		return errors.NewValidationError("malformed signature: failed to decode hex-encoded signature", nil)
 	}
 	// Convert address to public key
 	_, pubkeyBytes, err := subkey.SS58Decode(address)
 	if err != nil {
-		return errors.NewAuthorizationError("malformed address:failed to decode ss58 address", err)
+		return errors.NewValidationError("malformed address:failed to decode ss58 address", err)
 	}
 
 	// Create a new ed25519 public key
 	pubkeyEd25519, err := ed25519.Scheme{}.FromPublicKey(pubkeyBytes)
 	if err != nil {
-		return errors.NewAuthorizationError("error: can't create ed25519 public key", err)
+		return errors.NewValidationError("error: can't create ed25519 public key", err)
 	}
 
 	if !pubkeyEd25519.Verify(challengeBytes, sig) {
 		// Create a new sr25519 public key
 		pubkeySr25519, err := sr25519.Scheme{}.FromPublicKey(pubkeyBytes)
 		if err != nil {
-			return errors.NewAuthorizationError("error: can't create sr25519 public key", err)
+			return errors.NewValidationError("error: can't create sr25519 public key", err)
 		}
 		if !pubkeySr25519.Verify(challengeBytes, sig) {
 			return errors.NewAuthorizationError("bad signature: signature does not match", nil)

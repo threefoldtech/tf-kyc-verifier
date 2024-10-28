@@ -50,7 +50,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 		Collection:    "ip_limit",
 		Reset:         false,
 	})
-	ipLimiterConfig := limiter.Config{ // TODO: use configurable parameters, also check if it works well after passing the request through an SSL gateway
+	ipLimiterConfig := limiter.Config{
 		Max:                    config.IPLimiter.MaxTokenRequests,
 		Expiration:             time.Duration(config.IPLimiter.TokenExpiration) * time.Minute,
 		SkipFailedRequests:     false,
@@ -100,7 +100,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 		Reset:         false,
 	})
 
-	idLimiterConfig := limiter.Config{ // TODO: use configurable parameters
+	idLimiterConfig := limiter.Config{
 		Max:                    config.IDLimiter.MaxTokenRequests,
 		Expiration:             time.Duration(config.IDLimiter.TokenExpiration) * time.Minute,
 		SkipFailedRequests:     false,
@@ -154,7 +154,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	v1.Get("/data", middleware.AuthMiddleware(config.ChallengeWindow), handler.GetVerificationData())
 	// status route accepts either client_id or twin_id as query parameters
 	v1.Get("/status", handler.GetVerificationStatus())
-	v1.Get("/health", handler.HealthCheck())
+	v1.Get("/health", handler.HealthCheck(db))
 	// Webhook routes
 	webhooks := app.Group("/webhooks/idenfy")
 	webhooks.Post("/verification-update", handler.ProcessVerificationResult())
