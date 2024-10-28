@@ -14,7 +14,7 @@ type Verification struct {
 	Status                Status             `bson:"status" json:"status"`                   // required
 	Data                  PersonData         `bson:"data" json:"data"`                       // required
 	FileUrls              map[string]string  `bson:"fileUrls" json:"fileUrls"`               // required
-	IdenfyRef             string             `bson:"idenfyRef" json:"scanRef"`               // required
+	IdenfyRef             string             `bson:"scanRef" json:"scanRef"`                 // required
 	ClientID              string             `bson:"clientId" json:"clientId"`               // required
 	StartTime             int64              `bson:"startTime" json:"startTime"`             // required
 	FinishTime            int64              `bson:"finishTime" json:"finishTime"`           // required
