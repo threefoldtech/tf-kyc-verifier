@@ -167,6 +167,7 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 		return errors.NewAuthorizationError("error verifying callback signature", err)
 	}
 	// delete the token with the same clientID and same scanRef
+	result.ClientID = strings.Split(result.ClientID, ":")[0] // TODO: should we check if it have correct suffix? callback misconfiguration maybe?
 	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.IdenfyRef)
 	if err != nil {
 		s.logger.Warn("Error deleting verification token from database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))
@@ -174,7 +175,6 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 	// if the verification status is EXPIRED, we don't need to save it
 	if result.Status.Overall != nil && *result.Status.Overall != models.Overall("EXPIRED") {
 		// remove idenfy suffix from clientID
-		result.ClientID = strings.Split(result.ClientID, ":")[0] // TODO: should we check if it have correct suffix? callback misconfiguration maybe?
 		err = s.verificationRepo.SaveVerification(ctx, &result)
 		if err != nil {
 			s.logger.Error("Error saving verification to database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))
