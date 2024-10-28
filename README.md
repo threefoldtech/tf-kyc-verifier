@@ -264,6 +264,14 @@ To run the Docker container and use .env variables:
 docker run -d -p 8080:8080 --env-file .app.env tf_kyc_verifier
 ```
 
+### Creating database dump
+
+Most of the normal tools will work, although their usage might be a little convoluted in some cases to ensure they have access to the mongod server. A simple way to ensure this is to use docker exec and run the tool from the same container, similar to the following:
+
+```bash
+docker exec <mongo_db_container_name> sh -c 'exec mongodump -d <database_name> --archive' > /some/path/on/your/host/all-collections.archive
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
