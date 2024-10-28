@@ -106,7 +106,7 @@ func NewTokenResponseWithStatus(token *models.Token, isNewToken bool) *TokenResp
 
 func NewVerificationStatusResponse(verificationOutcome *models.VerificationOutcome) *VerificationStatusResponse {
 	outcome := OutcomeVerified
-	if verificationOutcome.Outcome == "REJECTED" {
+	if verificationOutcome.Outcome == models.OutcomeRejected {
 		outcome = OutcomeRejected
 	}
 	return &VerificationStatusResponse{
