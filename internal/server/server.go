@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -35,7 +37,12 @@ type Server struct {
 
 func New(config *configs.Config, logger *logger.Logger) *Server {
 	// debug log
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+		BodyLimit:    512 * 1024, // 512KB
+	})
 	// Setup Limter Config and store
 	ipLimiterstore := mongodb.New(mongodb.Config{
 		ConnectionURI: config.MongoDB.URI,
@@ -157,21 +164,22 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 }
 
 func (s *Server) Start() {
-	// Start server
 	go func() {
-		if err := s.app.Listen(":" + s.config.Server.Port); err != nil {
-			s.logger.Fatal("Failed to start server", zap.Error(err))
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		<-sigChan
+		// Graceful shutdown
+		s.logger.Info("Shutting down server...")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := s.app.ShutdownWithContext(ctx); err != nil {
+			s.logger.Error("Server forced to shutdown:", zap.Error(err))
 		}
 	}()
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-	s.logger.Info("Shutting down server...")
 
-	if err := s.app.Shutdown(); err != nil {
-		s.logger.Fatal("Server forced to shutdown", zap.Error(err))
+	// Start server
+	if err := s.app.Listen(":" + s.config.Server.Port); err != nil && err != http.ErrServerClosed {
+		s.logger.Fatal("Server startup failed", zap.Error(err))
 	}
-
-	s.logger.Info("Server exiting")
 }

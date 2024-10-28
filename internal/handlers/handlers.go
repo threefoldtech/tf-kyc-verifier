@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -175,6 +176,23 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 		h.logger.Error("Received ID expiration notification but not implemented")
 		return c.SendStatus(fiber.StatusNotImplemented)
 	}
+}
+
+// @Summary		Health Check
+// @Description	Returns the health status of the service
+// @Tags			Health
+// @Success		200	{object}	responses.HealthResponse
+// @Router			/health [get]
+func (h *Handler) HealthCheck(c *fiber.Ctx) error {
+	health := struct {
+		Status    string `json:"status"`
+		Timestamp string `json:"timestamp"`
+	}{
+		Status:    "ok",
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	}
+
+	return c.JSON(health)
 }
 
 func handleError(c *fiber.Ctx, err error) error {
