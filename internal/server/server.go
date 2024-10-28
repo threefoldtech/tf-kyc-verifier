@@ -111,7 +111,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	)
 
 	// Global middlewares
-	app.Use(middleware.Logger())
+	app.Use(middleware.NewLoggingMiddleware(logger))
 	app.Use(middleware.CORS())
 	app.Use(recover.New())
 	app.Use(helmet.New())
@@ -153,7 +153,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	webhooks.Post("/verification-update", handler.ProcessVerificationResult())
 	webhooks.Post("/id-expiration", handler.ProcessDocExpirationNotification())
 
-	return &Server{app: app, config: config}
+	return &Server{app: app, config: config, logger: logger}
 }
 
 func (s *Server) Start() {
