@@ -63,3 +63,16 @@ func (c *Substrate) GetAddressByTwinID(twinID string) (string, error) {
 	}
 	return twin.Account.String(), nil
 }
+
+// get chain name from ws provider url
+func (c *Substrate) GetChainName() (string, error) {
+	api, _, err := c.api.GetClient()
+	if err != nil {
+		return "", fmt.Errorf("failed to get substrate client: %w", err)
+	}
+	chain, err := api.RPC.System.Chain()
+	if err != nil {
+		return "", fmt.Errorf("failed to get chain: %w", err)
+	}
+	return string(chain), nil
+}

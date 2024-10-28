@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"example.com/tfgrid-kyc-service/internal/clients/idenfy"
@@ -22,10 +23,17 @@ type kycService struct {
 	substrate        *substrate.Substrate
 	config           *configs.Verification
 	logger           *logger.Logger
+	IdenfySuffix     string
 }
 
 func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Verification, logger *logger.Logger) KYCService {
-	return &kycService{verificationRepo: verificationRepo, tokenRepo: tokenRepo, idenfy: idenfy, substrate: substrateClient, config: config, logger: logger}
+	chainName, err := substrateClient.GetChainName()
+	if err != nil {
+		panic(errors.NewInternalError("error getting chain name", err))
+	}
+	chainNameParts := strings.Split(chainName, " ")
+	chainNetworkName := strings.ToLower(chainNameParts[len(chainNameParts)-1])
+	return &kycService{verificationRepo: verificationRepo, tokenRepo: tokenRepo, idenfy: idenfy, substrate: substrateClient, config: config, logger: logger, IdenfySuffix: chainNetworkName}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -65,11 +73,15 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 	if !hasRequiredBalance {
 		return nil, false, errors.NewNotSufficientBalanceError("account does not have the required balance", nil)
 	}
-	newToken, err_ := s.idenfy.CreateVerificationSession(ctx, clientID)
+	// prefix clientID with tfchain network prefix
+	uniqueClientID := clientID + ":" + s.IdenfySuffix
+	newToken, err_ := s.idenfy.CreateVerificationSession(ctx, uniqueClientID)
 	if err_ != nil {
-		s.logger.Error("Error creating iDenfy verification session", zap.String("clientID", clientID), zap.Error(err_))
+		s.logger.Error("Error creating iDenfy verification session", zap.String("clientID", clientID), zap.String("uniqueClientID", uniqueClientID), zap.Error(err_))
 		return nil, false, errors.NewExternalError("error creating iDenfy verification session", err_)
 	}
+	// save the token with the original clientID
+	newToken.ClientID = clientID
 	err_ = s.tokenRepo.SaveToken(ctx, &newToken)
 	if err_ != nil {
 		s.logger.Error("Error saving verification token to database", zap.String("clientID", clientID), zap.Error(err))
@@ -161,6 +173,8 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 	}
 	// if the verification status is EXPIRED, we don't need to save it
 	if result.Status.Overall != nil && *result.Status.Overall != models.Overall("EXPIRED") {
+		// remove idenfy suffix from clientID
+		result.ClientID = strings.Split(result.ClientID, ":")[0] // TODO: should we check if it have correct suffix? callback misconfiguration maybe?
 		err = s.verificationRepo.SaveVerification(ctx, &result)
 		if err != nil {
 			s.logger.Error("Error saving verification to database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))

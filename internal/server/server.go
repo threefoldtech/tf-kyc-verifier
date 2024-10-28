@@ -112,11 +112,6 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 		},
 	}
 
-	logger.Info("Limiter configurations",
-		zap.Any("ipLimiter", ipLimiterConfig),
-		zap.Any("idLimiter", idLimiterConfig),
-	)
-
 	// Global middlewares
 	app.Use(middleware.NewLoggingMiddleware(logger))
 	app.Use(middleware.CORS())

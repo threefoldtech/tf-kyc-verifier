@@ -29,7 +29,7 @@ func main() {
 	logger := logger.GetLogger()
 	defer logger.Sync()
 
-	logger.Debug("Configuration loaded successfully", zap.Any("config", config))
+	logger.Debug("Configuration loaded successfully", zap.Any("config", config)) // TODO: remove me after testing
 
 	server := server.New(config, logger)
 	logger.Info("Starting server on port:", zap.String("port", config.Server.Port))

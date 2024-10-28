@@ -31,6 +31,7 @@ type Idenfy struct {
 	CallbackSignKey string   `env:"IDENFY_CALLBACK_SIGN_KEY" env-required:"true"`
 	WhitelistedIPs  []string `env:"IDENFY_WHITELISTED_IPS" env-separator:","`
 	DevMode         bool     `env:"IDENFY_DEV_MODE" env-default:"false"`
+	CallbackUrl     string   `env:"IDENFY_CALLBACK_URL" env-required:"false"`
 }
 type TFChain struct {
 	WsProviderURL string `env:"TFCHAIN_WS_PROVIDER_URL" env-default:"wss://tfchain.grid.tf"`

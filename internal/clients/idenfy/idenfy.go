@@ -23,6 +23,7 @@ type Idenfy struct {
 	secretKey       string
 	baseURL         string
 	callbackSignKey []byte
+	callbackUrl     string
 	devMode         bool
 	logger          *logger.Logger
 }
@@ -38,6 +39,7 @@ func New(config configs.Idenfy, logger *logger.Logger) *Idenfy {
 		accessKey:       config.APIKey,
 		secretKey:       config.APISecret,
 		callbackSignKey: []byte(config.CallbackSignKey),
+		callbackUrl:     config.CallbackUrl,
 		devMode:         config.DevMode,
 		logger:          logger,
 	}
@@ -112,6 +114,7 @@ func (c *Idenfy) createVerificationSessionRequestBody(clientID string, devMode b
 	RequestBody := map[string]interface{}{
 		"clientId":            clientID,
 		"generateDigitString": true,
+		"callbackUrl":         c.callbackUrl,
 	}
 	if devMode {
 		RequestBody["expiryTime"] = 30
