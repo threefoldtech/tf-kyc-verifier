@@ -19,7 +19,7 @@ type Config struct {
 
 type MongoDB struct {
 	URI          string `env:"MONGO_URI" env-default:"mongodb://localhost:27017"`
-	DatabaseName string `env:"DATABASE_NAME" env-default:"tfgrid-kyc-db"`
+	DatabaseName string `env:"DATABASE_NAME" env-default:"tf-kyc-db"`
 }
 type Server struct {
 	Port string `env:"PORT" env-default:"8080"`

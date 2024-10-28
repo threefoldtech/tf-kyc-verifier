@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  tfgrid_kyc_api:
+  tf_kyc_api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,13 +10,13 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      mongo:
+      tf_kyc_db:
         condition: service_healthy
     env_file:
       - .app.env
 
 
-  mongo:
+  tf_kyc_db:
     image: mongo:latest
     container_name: tf_kyc_db
     ports:
@@ -36,10 +36,10 @@ services:
     image: mongo-express:latest
     container_name: mongo_express
     environment:
-        - ME_CONFIG_MONGODB_SERVER=mongo
+        - ME_CONFIG_MONGODB_SERVER=tf_kyc_db
         - ME_CONFIG_MONGODB_PORT=27017
     depends_on:
-        - mongo
+        - tf_kyc_db
     ports:
       - "8888:8081"
     env_file:
@@ -50,5 +50,5 @@ volumes:
 
 networks:
   default:
-    name: tfgrid_kyc_network
+    name: tf_kyc_network
     driver: bridge
