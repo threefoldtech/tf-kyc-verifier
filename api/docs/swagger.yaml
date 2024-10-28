@@ -5,6 +5,13 @@ definitions:
       error:
         type: string
     type: object
+  responses.HealthResponse:
+    properties:
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
   responses.Outcome:
     enum:
     - VERIFIED
@@ -275,6 +282,17 @@ paths:
       summary: Get or Generate iDenfy Verification Token
       tags:
       - Token
+  /health:
+    get:
+      description: Returns the health status of the service
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.HealthResponse'
+      summary: Health Check
+      tags:
+      - Health
   /webhooks/idenfy/id-expiration:
     post:
       consumes:

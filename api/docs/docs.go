@@ -226,6 +226,23 @@ const docTemplate = `{
                 }
             }
         },
+        "/health": {
+            "get": {
+                "description": "Returns the health status of the service",
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Health Check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/webhooks/idenfy/id-expiration": {
             "post": {
                 "description": "Processes the doc expiration notification for a client",
@@ -272,6 +289,17 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
                     "type": "string"
                 }
             }

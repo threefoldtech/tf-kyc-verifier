@@ -184,10 +184,7 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 // @Success		200	{object}	responses.HealthResponse
 // @Router			/health [get]
 func (h *Handler) HealthCheck(c *fiber.Ctx) error {
-	health := struct {
-		Status    string `json:"status"`
-		Timestamp string `json:"timestamp"`
-	}{
+	health := responses.HealthResponse{
 		Status:    "ok",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}

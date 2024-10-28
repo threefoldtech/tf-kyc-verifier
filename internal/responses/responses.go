@@ -8,6 +8,11 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+type HealthResponse struct {
+	Status    string `json:"status"`
+	Timestamp string `json:"timestamp"`
+}
+
 type TokenResponse struct {
 	Message       string `json:"message"`
 	AuthToken     string `json:"authToken"`
