@@ -86,7 +86,6 @@ func (h *Handler) GetVerificationData() fiber.Handler {
 // @Router			/api/v1/status [get]
 func (h *Handler) GetVerificationStatus() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		h.logger.Debug("GetVerificationStatus request received", zap.Any("query", c.Queries()))
 		clientID := c.Query("client_id")
 		twinID := c.Query("twin_id")
 
@@ -117,10 +116,6 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 			)
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Verification not found"})
 		}
-		h.logger.Info("Verification status retrieved successfully",
-			zap.String("clientID", clientID),
-			zap.String("twinID", twinID),
-		)
 		response := responses.NewVerificationStatusResponse(verification)
 		return c.JSON(fiber.Map{"result": response})
 	}
