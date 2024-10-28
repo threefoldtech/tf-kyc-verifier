@@ -1,8 +1,8 @@
-# TFGrid KYC Service
+# TF KYC Service
 
 ## Overview
 
-TFGrid KYC Service is a Go-based service that provides Know Your Customer (KYC) functionality for the TFGrid. It integrates with iDenfy for identity verification.
+TF KYC Service is a Go-based service that provides Know Your Customer (KYC) functionality for the TF Grid. It integrates with iDenfy for identity verification.
 
 ## Features
 
@@ -25,8 +25,8 @@ TFGrid KYC Service is a Go-based service that provides Know Your Customer (KYC) 
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/yourusername/tfgrid-kyc-verifier.git
-    cd tfgrid-kyc-verifier
+    git clone https://github.com/yourusername/tf-kyc-verifier.git
+    cd tf-kyc-verifier
     ```
 
 2. Set up your environment variables:
@@ -45,7 +45,7 @@ The application uses environment variables for configuration. Here's a list of a
 ### Database Configuration
 
 - `MONGO_URI`: MongoDB connection URI (default: "mongodb://localhost:27017")
-- `DATABASE_NAME`: Name of the MongoDB database (default: "tfgrid-kyc-db")
+- `DATABASE_NAME`: Name of the MongoDB database (default: "tf-kyc-db")
 
 ### Server Configuration
 
@@ -53,30 +53,48 @@ The application uses environment variables for configuration. Here's a list of a
 
 ### iDenfy Configuration
 
-- `IDENFY_API_KEY`: API key for iDenfy service
-- `IDENFY_API_SECRET`: API secret for iDenfy service
-- `IDENFY_BASE_URL`: Base URL for iDenfy API (default: "<https://ivs.idenfy.com/api/v2>")
-- `IDENFY_CALLBACK_SIGN_KEY`: Callback signing key for iDenfy webhooks
+- `IDENFY_API_KEY`: API key for iDenfy service (required) (note: make sure to use correct iDenfy API key for the environment dev, test, and production) (iDenfy dev -> TFChain Devnet, iDenfy test -> TFChain QAnet, iDenfy prod -> TFChain Testnet and Mainnet)
+- `IDENFY_API_SECRET`: API secret for iDenfy service (required)
+- `IDENFY_BASE_URL`: Base URL for iDenfy API (default: "<https://ivs.idenfy.com>")
+- `IDENFY_CALLBACK_SIGN_KEY`: Callback signing key for iDenfy webhooks (required) (note: should match the signing key in iDenfy dashboard for the related environment)
 - `IDENFY_WHITELISTED_IPS`: Comma-separated list of whitelisted IPs for iDenfy callbacks
+- `IDENFY_DEV_MODE`: Enable development mode for iDenfy integration (default: false) (note: works only in iDenfy dev environment, enabling it in test or production environment will cause iDenfy to reject the requests)
+- `IDENFY_CALLBACK_URL`: URL for iDenfy verification update callbacks. (example: `https://{KYC-SERVICE-DOMAIN}/webhooks/idenfy/verification-update`)
 
 ### TFChain Configuration
 
 - `TFCHAIN_WS_PROVIDER_URL`: WebSocket provider URL for TFChain (default: "wss://tfchain.grid.tf")
 
-### Rate Limiting
-
-- `MAX_TOKEN_REQUESTS_PER_MINUTE`: Maximum number of token requests allowed per minute for same IP address (default: 4)
-
 ### Verification Settings
 
-- `SUSPICIOUS_VERIFICATION_OUTCOME`: Outcome for suspicious verifications (default: "verified")
-- `EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: "unverified")
-- `CHALLENGE_WINDOW`: Time window (in seconds) for challenge validation (default: 120)
-- `MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance (in units TFT) required to verify an account (default: 10000000)
+- `VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME`: Outcome for suspicious verifications (default: "verified")
+- `VERIFICATION_EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: "unverified")
+- `VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance required to verify an account (default: 10000000)
+
+### Rate Limiting
+
+#### IP-based Rate Limiting
+
+- `IP_LIMITER_MAX_TOKEN_REQUESTS`: Maximum number of token requests per IP (default: 4)
+- `IP_LIMITER_TOKEN_EXPIRATION`: Token expiration time in hours (default: 24)
+
+#### ID-based Rate Limiting
+
+- `ID_LIMITER_MAX_TOKEN_REQUESTS`: Maximum number of token requests per ID (default: 4)
+- `ID_LIMITER_TOKEN_EXPIRATION`: Token expiration time in hours (default: 24)
+
+### Challenge Configuration
+
+- `CHALLENGE_WINDOW`: Time window in seconds for challenge validation (default: 8)
+- `CHALLENGE_DOMAIN`: Current service domain name for challenge validation (required) (example: `tfkyc.dev.grid.tf`)
+
+### Logging
+
+- `DEBUG`: Enable debug logging (default: false)
 
 To configure these options, you can either set them as environment variables or include them in your `.env` file.
 
-Refer to `internal/configs/config.go` for a full list of configuration options.
+Refer to `internal/configs/config.go` for the implementation details of these configuration options.
 
 ## Running the Application
 
@@ -109,18 +127,83 @@ To run the application locally:
 
 ## API Endpoints
 
-### Client endpoints
+### Client Endpoints
 
-- `POST /api/v1/token`: Get or create a verification token
-- `GET /api/v1/data`: Get verification data
-- `GET /api/v1/status`: Get verification status
+#### Token Management
 
-### Webhook endpoints
+- `POST /api/v1/token`
+  - Get or create a verification token
+  - Required Headers:
+    - `X-Client-ID`: TFChain SS58Address (48 chars)
+    - `X-Challenge`: Hex-encoded message `{api-domain}:{timestamp}`
+    - `X-Signature`: Hex-encoded sr25519|ed25519 signature (128 chars)
+  - Responses:
+    - `200`: Existing token retrieved
+    - `201`: New token created
+    - `400`: Bad request
+    - `401`: Unauthorized
+    - `402`: Payment required
+    - `409`: Conflict
+    - `500`: Internal server error
 
-- `POST /webhooks/idenfy/verification-update`: Process verification update (webhook)
-- `POST /webhooks/idenfy/id-expiration`: Process document expiration notification (webhook)
+#### Verification
 
-Refer to the Swagger documentation for detailed information on request/response formats.
+- `GET /api/v1/data`
+  - Get verification data for a client
+  - Required Headers:
+    - `X-Client-ID`: TFChain SS58Address (48 chars)
+    - `X-Challenge`: Hex-encoded message `{api-domain}:{timestamp}`
+    - `X-Signature`: Hex-encoded sr25519|ed25519 signature (128 chars)
+  - Responses:
+    - `200`: Success
+    - `400`: Bad request
+    - `401`: Unauthorized
+    - `404`: Not found
+    - `500`: Internal server error
+
+- `GET /api/v1/status`
+  - Get verification status
+  - Query Parameters (at least one required):
+    - `client_id`: TFChain SS58Address (48 chars)
+    - `twin_id`: Twin ID
+  - Responses:
+    - `200`: Success
+    - `400`: Bad request
+    - `404`: Not found
+    - `500`: Internal server error
+
+### Webhook Endpoints
+
+- `POST /webhooks/idenfy/verification-update`
+  - Process verification update from iDenfy
+  - Required Headers:
+    - `Idenfy-Signature`: Verification signature
+  - Responses:
+    - `200`: Success
+    - `400`: Bad request
+    - `500`: Internal server error
+
+- `POST /webhooks/idenfy/id-expiration`
+  - Process document expiration notification (Not implemented)
+  - Responses:
+    - `501`: Not implemented
+
+### Health Check
+
+- `GET /api/v1/health`
+  - Check service health status
+  - Responses:
+    - `200`: Returns health status
+      - `healthy`: All systems operational
+      - `degraded`: Some systems experiencing issues
+
+### Documentation
+
+- `GET /docs`
+  - Swagger documentation interface
+  - Provides interactive API documentation and testing interface
+
+Refer to the Swagger documentation at `/docs` endpoint for detailed information about request/response formats and examples.
 
 ## Swagger Documentation
 
@@ -129,19 +212,33 @@ Swagger documentation is available. To view it, run the application and navigate
 ## Project Structure
 
 - `cmd/`: Application entrypoints
+  - `api/`: Main API server
 - `internal/`: Internal packages
+  - `clients/`: External service clients
   - `configs/`: Configuration handling
+  - `errors/`: Custom error types
   - `handlers/`: HTTP request handlers
+  - `logger/`: Logging configuration
+  - `middlewares/`: HTTP middlewares
   - `models/`: Data models
+  - `repositories/`: Data access layer
   - `responses/`: API response structures
+  - `server/`: Server setup and routing
   - `services/`: Business logic
-  - `repositories/`: Data repositories
-  - `middlewares/`: Middlewares
-  - `clients/`: External clients
-  - `server/`: Server and router setup
-- `api/docs/`: Swagger documentation
-- `scripts/`: Development and utility scripts
+- `api/`: API documentation
+  - `docs/`: Swagger documentation files
+- `.github/`: GitHub specific files
+  - `workflows/`: GitHub Actions workflows
+- `scripts/`: Utility and Development scripts
 - `docs/`: Documentation
+
+- Configuration files:
+  - `.app.env.example`: Example application environment variables
+  - `.db.env.example`: Example database environment variables
+  - `Dockerfile`: Container build instructions
+  - `docker-compose.yml`: Multi-container Docker setup
+  - `go.mod`: Go module definition
+  - `go.sum`: Go module checksums
 
 ## Development
 
@@ -156,7 +253,7 @@ TODO: Add tests
 To build the Docker image:
 
 ```bash
-docker build -t tfgrid-kyc-service .
+docker build -t tf_kyc_verifier .
 ```
 
 ### Running the Docker Container
@@ -164,7 +261,7 @@ docker build -t tfgrid-kyc-service .
 To run the Docker container and use .env variables:
 
 ```bash
-docker run -d -p 8080:8080 --env-file .app.env tfgrid-kyc-service
+docker run -d -p 8080:8080 --env-file .app.env tf_kyc_verifier
 ```
 
 ## Contributing
