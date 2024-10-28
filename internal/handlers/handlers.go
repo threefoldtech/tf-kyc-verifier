@@ -33,6 +33,10 @@ func NewHandler(kycService services.KYCService, logger *logger.Logger) *Handler 
 // @Param			X-Signature	header		string	true	"hex-encoded sr25519|ed25519 signature"				minlength(128)	maxlength(128)
 // @Success		200			{object}	responses.TokenResponse "Existing token retrieved"
 // @Success		201			{object}	responses.TokenResponse "New token created"
+// @Failure		401			{object}	responses.ErrorResponse
+// @Failure		402			{object}	responses.ErrorResponse
+// @Failure		409			{object}	responses.ErrorResponse
+// @Failure		500			{object}	responses.ErrorResponse
 // @Router			/api/v1/token [post]
 func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -58,7 +62,10 @@ func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 // @Param			X-Client-ID	header		string	true	"TFChain SS58Address"								minlength(48)	maxlength(48)
 // @Param			X-Challenge	header		string	true	"hex-encoded message `{api-domain}:{timestamp}`"
 // @Param			X-Signature	header		string	true	"hex-encoded sr25519|ed25519 signature"				minlength(128)	maxlength(128)
-// @Success		200			{object}	responses.VerificationDataResponse
+// @Success		200			{object}		responses.VerificationDataResponse
+// @Failure		401			{object}		responses.ErrorResponse
+// @Failure		404			{object}		responses.ErrorResponse
+// @Failure		500			{object}		responses.ErrorResponse
 // @Router			/api/v1/data [get]
 func (h *Handler) GetVerificationData() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -82,7 +89,10 @@ func (h *Handler) GetVerificationData() fiber.Handler {
 // @Produce		json
 // @Param			client_id	query		string	false	"TFChain SS58Address"								minlength(48)	maxlength(48)
 // @Param			twin_id		query		string	false	"Twin ID"											minlength(1)
-// @Success		200			{object}	responses.VerificationStatusResponse
+// @Success		200			{object}		responses.VerificationStatusResponse
+// @Failure		400			{object}		responses.ErrorResponse
+// @Failure		404			{object}		responses.ErrorResponse
+// @Failure		500			{object}		responses.ErrorResponse
 // @Router			/api/v1/status [get]
 func (h *Handler) GetVerificationStatus() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -192,7 +202,7 @@ func getStatusCode(errorType errors.ErrorType) int {
 	case errors.ErrorTypeConflict:
 		return fiber.StatusConflict
 	case errors.ErrorTypeExternal:
-		return fiber.StatusBadGateway
+		return fiber.StatusInternalServerError
 	case errors.ErrorTypeNotSufficientBalance:
 		return fiber.StatusPaymentRequired
 	default:

@@ -2,21 +2,10 @@ package responses
 
 import (
 	"example.com/tfgrid-kyc-service/internal/models"
-	"github.com/gofiber/fiber/v2"
 )
 
-type Response struct {
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
-	Message string      `json:"message,omitempty"`
-}
-
-func SuccessResponse(c *fiber.Ctx, statusCode int, data interface{}, message string) error {
-	return c.Status(statusCode).JSON(Response{
-		Success: true,
-		Data:    data,
-		Message: message,
-	})
+type ErrorResponse struct {
+	Error string `json:"error"`
 }
 
 type TokenResponse struct {
