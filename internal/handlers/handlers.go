@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"time"
 
@@ -145,11 +144,7 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 // @Router			/webhooks/idenfy/verification-update [post]
 func (h *Handler) ProcessVerificationResult() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// decode base64 to string
-		dst := make([]byte, base64.StdEncoding.DecodedLen(len(c.Body())))
-		base64.StdEncoding.Decode(dst, c.Body())
-		h.logger.Debug("Received verification update", zap.Any("body", string(dst)), zap.Any("headers", &c.Request().Header))
-
+		h.logger.Debug("Received verification update", zap.Any("body", string(c.Body())), zap.Any("headers", &c.Request().Header))
 		sigHeader := c.Get("Idenfy-Signature")
 		if len(sigHeader) < 1 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No signature provided"})
