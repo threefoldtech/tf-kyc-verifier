@@ -15,7 +15,6 @@ type Config struct {
 	IDLimiter       IDLimiter
 	ChallengeWindow int64 `env:"CHALLENGE_WINDOW" env-default:"8"`
 	Log             Log
-	Encryption      Encryption
 }
 
 type MongoDB struct {
@@ -51,10 +50,6 @@ type IDLimiter struct {
 }
 type Log struct {
 	Debug bool `env:"DEBUG" env-default:"false"`
-}
-
-type Encryption struct {
-	Key string `env:"ENCRYPTION_KEY" env-required:"true"`
 }
 
 func LoadConfig() (*Config, error) {
