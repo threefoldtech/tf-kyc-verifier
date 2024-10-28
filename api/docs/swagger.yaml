@@ -188,6 +188,17 @@ paths:
       summary: Get Verification Data
       tags:
       - Verification
+  /api/v1/health:
+    get:
+      description: Returns the health status of the service
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.HealthResponse'
+      summary: Health Check
+      tags:
+      - Health
   /api/v1/status:
     get:
       consumes:
@@ -282,17 +293,6 @@ paths:
       summary: Get or Generate iDenfy Verification Token
       tags:
       - Token
-  /health:
-    get:
-      description: Returns the health status of the service
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/responses.HealthResponse'
-      summary: Health Check
-      tags:
-      - Health
   /webhooks/idenfy/id-expiration:
     post:
       consumes:

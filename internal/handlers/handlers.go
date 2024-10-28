@@ -182,7 +182,7 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 // @Description	Returns the health status of the service
 // @Tags			Health
 // @Success		200	{object}	responses.HealthResponse
-// @Router			/health [get]
+// @Router			/api/v1/health [get]
 func (h *Handler) HealthCheck() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		health := responses.HealthResponse{

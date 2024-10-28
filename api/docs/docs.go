@@ -88,6 +88,23 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/health": {
+            "get": {
+                "description": "Returns the health status of the service",
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Health Check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/status": {
             "get": {
                 "description": "Returns the verification status for a client",
@@ -221,23 +238,6 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/responses.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/health": {
-            "get": {
-                "description": "Returns the health status of the service",
-                "tags": [
-                    "Health"
-                ],
-                "summary": "Health Check",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/responses.HealthResponse"
                         }
                     }
                 }
