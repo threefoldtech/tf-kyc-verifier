@@ -183,13 +183,15 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 // @Tags			Health
 // @Success		200	{object}	responses.HealthResponse
 // @Router			/health [get]
-func (h *Handler) HealthCheck(c *fiber.Ctx) error {
-	health := responses.HealthResponse{
-		Status:    "ok",
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
-	}
+func (h *Handler) HealthCheck() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		health := responses.HealthResponse{
+			Status:    "ok",
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+		}
 
-	return c.JSON(health)
+		return c.JSON(health)
+	}
 }
 
 func handleError(c *fiber.Ctx, err error) error {

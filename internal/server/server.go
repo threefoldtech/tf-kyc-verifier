@@ -154,7 +154,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	v1.Get("/data", middleware.AuthMiddleware(config.ChallengeWindow), handler.GetVerificationData())
 	// status route accepts either client_id or twin_id as query parameters
 	v1.Get("/status", handler.GetVerificationStatus())
-
+	v1.Get("/health", handler.HealthCheck())
 	// Webhook routes
 	webhooks := app.Group("/webhooks/idenfy")
 	webhooks.Post("/verification-update", handler.ProcessVerificationResult())
