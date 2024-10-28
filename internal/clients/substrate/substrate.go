@@ -43,6 +43,9 @@ func (c *Substrate) GetAccountBalance(address string) (*big.Int, error) {
 	accountID := tfchain.AccountID(pubkeyBytes)
 	balance, err := c.api.GetBalance(accountID)
 	if err != nil {
+		if err.Error() == "account not found" {
+			return big.NewInt(0), nil
+		}
 		return nil, fmt.Errorf("failed to get balance: %w", err)
 	}
 
