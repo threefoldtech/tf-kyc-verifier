@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
 
 	"example.com/tfgrid-kyc-service/internal/errors"
@@ -46,7 +49,7 @@ func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 
 		token, isNewToken, err := h.kycService.GetorCreateVerificationToken(c.Context(), clientID)
 		if err != nil {
-			return handleError(c, err)
+			return HandleError(c, err)
 		}
 		response := responses.NewTokenResponseWithStatus(token, isNewToken)
 		if isNewToken {
@@ -74,7 +77,7 @@ func (h *Handler) GetVerificationData() fiber.Handler {
 		clientID := c.Get("X-Client-ID")
 		verification, err := h.kycService.GetVerificationData(c.Context(), clientID)
 		if err != nil {
-			return handleError(c, err)
+			return HandleError(c, err)
 		}
 		if verification == nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Verification not found"})
@@ -119,7 +122,7 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 				zap.String("twinID", twinID),
 				zap.Error(err),
 			)
-			return handleError(c, err)
+			return HandleError(c, err)
 		}
 		if verification == nil {
 			h.logger.Info("Verification not found",
@@ -162,7 +165,7 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 		h.logger.Debug("Verification update after decoding", zap.Any("result", result))
 		err = h.kycService.ProcessVerificationResult(c.Context(), body, sigHeader, result)
 		if err != nil {
-			return handleError(c, err)
+			return HandleError(c, err)
 		}
 		return c.SendStatus(fiber.StatusOK)
 	}
@@ -188,25 +191,38 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 // @Tags			Health
 // @Success		200	{object}	responses.HealthResponse
 // @Router			/api/v1/health [get]
-func (h *Handler) HealthCheck() fiber.Handler {
+func (h *Handler) HealthCheck(dbClient *mongo.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := dbClient.Ping(ctx, readpref.Primary())
+		if err != nil {
+			// status degraded
+			health := responses.HealthResponse{
+				Status:    responses.HealthStatusDegraded,
+				Timestamp: time.Now().UTC().Format(time.RFC3339),
+				Errors:    []string{err.Error()},
+			}
+			return c.JSON(health)
+		}
 		health := responses.HealthResponse{
-			Status:    "ok",
+			Status:    responses.HealthStatusHealthy,
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
+			Errors:    []string{},
 		}
 
 		return c.JSON(health)
 	}
 }
 
-func handleError(c *fiber.Ctx, err error) error {
+func HandleError(c *fiber.Ctx, err error) error {
 	if serviceErr, ok := err.(*errors.ServiceError); ok {
-		return handleServiceError(c, serviceErr)
+		return HandleServiceError(c, serviceErr)
 	}
 	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 }
 
-func handleServiceError(c *fiber.Ctx, err *errors.ServiceError) error {
+func HandleServiceError(c *fiber.Ctx, err *errors.ServiceError) error {
 	statusCode := getStatusCode(err.Type)
 	return c.Status(statusCode).JSON(fiber.Map{
 		"error": err.Message,
