@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"example.com/tfgrid-kyc-service/internal/configs"
 	"example.com/tfgrid-kyc-service/internal/errors"
 	"example.com/tfgrid-kyc-service/internal/handlers"
 	"example.com/tfgrid-kyc-service/internal/logger"
@@ -22,7 +23,7 @@ func CORS() fiber.Handler {
 }
 
 // AuthMiddleware is a middleware that validates the authentication credentials
-func AuthMiddleware(challengeWindow int64) fiber.Handler {
+func AuthMiddleware(config configs.Challenge) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get("X-Client-ID")
 		signature := c.Get("X-Signature")
@@ -35,7 +36,7 @@ func AuthMiddleware(challengeWindow int64) fiber.Handler {
 		}
 
 		// Verify the clientID and signature here
-		err := ValidateChallenge(clientID, signature, challenge, "kyc1.gent01.dev.grid.tf", challengeWindow)
+		err := ValidateChallenge(clientID, signature, challenge, config.Domain, config.Window)
 		if err != nil {
 			// cast error to service error and convert it to http status code
 			serviceError, ok := err.(*errors.ServiceError)

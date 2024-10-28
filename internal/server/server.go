@@ -145,8 +145,8 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	app.Get("/docs/*", swagger.HandlerDefault)
 
 	v1 := app.Group("/api/v1")
-	v1.Post("/token", middleware.AuthMiddleware(config.ChallengeWindow), limiter.New(idLimiterConfig), limiter.New(ipLimiterConfig), handler.GetorCreateVerificationToken())
-	v1.Get("/data", middleware.AuthMiddleware(config.ChallengeWindow), handler.GetVerificationData())
+	v1.Post("/token", middleware.AuthMiddleware(config.Challenge), limiter.New(idLimiterConfig), limiter.New(ipLimiterConfig), handler.GetorCreateVerificationToken())
+	v1.Get("/data", middleware.AuthMiddleware(config.Challenge), handler.GetVerificationData())
 	// status route accepts either client_id or twin_id as query parameters
 	v1.Get("/status", handler.GetVerificationStatus())
 	v1.Get("/health", handler.HealthCheck(db))

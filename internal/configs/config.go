@@ -6,15 +6,15 @@ import (
 )
 
 type Config struct {
-	MongoDB         MongoDB
-	Server          Server
-	Idenfy          Idenfy
-	TFChain         TFChain
-	Verification    Verification
-	IPLimiter       IPLimiter
-	IDLimiter       IDLimiter
-	ChallengeWindow int64 `env:"CHALLENGE_WINDOW" env-default:"8"`
-	Log             Log
+	MongoDB      MongoDB
+	Server       Server
+	Idenfy       Idenfy
+	TFChain      TFChain
+	Verification Verification
+	IPLimiter    IPLimiter
+	IDLimiter    IDLimiter
+	Challenge    Challenge
+	Log          Log
 }
 
 type MongoDB struct {
@@ -51,6 +51,10 @@ type IDLimiter struct {
 }
 type Log struct {
 	Debug bool `env:"DEBUG" env-default:"false"`
+}
+type Challenge struct {
+	Window int64  `env:"CHALLENGE_WINDOW" env-default:"8"`
+	Domain string `env:"CHALLENGE_DOMAIN" env-required:"true"`
 }
 
 func LoadConfig() (*Config, error) {
