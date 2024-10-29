@@ -34,7 +34,7 @@ func (r *MongoTokenRepository) createTTLIndex() {
 	_, err := r.collection.Indexes().CreateOne(
 		ctx,
 		mongo.IndexModel{
-			Keys:    bson.D{{"expiresAt", 1}},
+			Keys:    bson.D{{Key: "expiresAt", Value: 1}},
 			Options: options.Index().SetExpireAfterSeconds(0),
 		},
 	)

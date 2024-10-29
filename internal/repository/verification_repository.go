@@ -32,7 +32,7 @@ func (r *MongoVerificationRepository) SaveVerification(ctx context.Context, veri
 func (r *MongoVerificationRepository) GetVerification(ctx context.Context, clientID string) (*models.Verification, error) {
 	var verification models.Verification
 	// return the latest verification
-	opts := options.FindOne().SetSort(bson.D{{"createdAt", -1}})
+	opts := options.FindOne().SetSort(bson.D{{Key: "createdAt", Value: -1}})
 	err := r.collection.FindOne(ctx, bson.M{"clientId": clientID}, opts).Decode(&verification)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
