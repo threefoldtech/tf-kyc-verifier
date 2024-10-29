@@ -272,6 +272,10 @@ Most of the normal tools will work, although their usage might be a little convo
 docker exec <mongo_db_container_name> sh -c 'exec mongodump -d <database_name> --archive' > /some/path/on/your/host/all-collections.archive
 ```
 
+## Production
+
+Refer to the [Production Setup](./docs/production.md) documentation for production setup details.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
