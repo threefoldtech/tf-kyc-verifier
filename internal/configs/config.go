@@ -43,11 +43,11 @@ type Verification struct {
 }
 type IPLimiter struct {
 	MaxTokenRequests int `env:"IP_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
-	TokenExpiration  int `env:"IP_LIMITER_TOKEN_EXPIRATION" env-default:"24"`
+	TokenExpiration  int `env:"IP_LIMITER_TOKEN_EXPIRATION" env-default:"1440"`
 }
 type IDLimiter struct {
 	MaxTokenRequests int `env:"ID_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
-	TokenExpiration  int `env:"ID_LIMITER_TOKEN_EXPIRATION" env-default:"24"`
+	TokenExpiration  int `env:"ID_LIMITER_TOKEN_EXPIRATION" env-default:"1440"`
 }
 type Log struct {
 	Debug bool `env:"DEBUG" env-default:"false"`

@@ -69,19 +69,19 @@ The application uses environment variables for configuration. Here's a list of a
 
 - `VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME`: Outcome for suspicious verifications (default: "verified")
 - `VERIFICATION_EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: "unverified")
-- `VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance required to verify an account (default: 10000000)
+- `VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance in unitTFT required to verify an account (default: 10000000)
 
 ### Rate Limiting
 
 #### IP-based Rate Limiting
 
 - `IP_LIMITER_MAX_TOKEN_REQUESTS`: Maximum number of token requests per IP (default: 4)
-- `IP_LIMITER_TOKEN_EXPIRATION`: Token expiration time in hours (default: 24)
+- `IP_LIMITER_TOKEN_EXPIRATION`: Token expiration time in minutes (default: 1440)
 
 #### ID-based Rate Limiting
 
 - `ID_LIMITER_MAX_TOKEN_REQUESTS`: Maximum number of token requests per ID (default: 4)
-- `ID_LIMITER_TOKEN_EXPIRATION`: Token expiration time in hours (default: 24)
+- `ID_LIMITER_TOKEN_EXPIRATION`: Token expiration time in minutes (default: 1440)
 
 ### Challenge Configuration
 
