@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: tf_kyc_api
+    image: ghcr.io/threefoldtech/tf-kyc-verifier:latest
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -20,7 +21,7 @@ services:
       start_period: 10s
 
   db:
-    image: mongo:latest
+    image: mongo:8
     container_name: tf_kyc_db
     ports:
       - "27017:27017"
