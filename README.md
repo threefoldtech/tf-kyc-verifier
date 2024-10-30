@@ -100,10 +100,20 @@ Refer to `internal/configs/config.go` for the implementation details of these co
 
 ### Using Docker Compose
 
-To start the server and MongoDB using Docker Compose:
+First make sure to create and set the environment variables in the `.app.env`, `.db.env` files.
+Examples can be found in `.app.env.example`, `.db.env.example`.
+In beta releases, we include the mongo-express container, but you can opt to disable it.
+
+To start only the server and MongoDB using Docker Compose:
 
 ```bash
-docker-compose up -d
+docker compose up -d db api
+```
+
+For a full setup with mongo-express, make sure to create and set the environment variables in the `.express.env` file as well, then run:
+
+```bash
+docker compose up -d
 ```
 
 ### Running Locally
@@ -144,7 +154,6 @@ To run the application locally:
     - `401`: Unauthorized
     - `402`: Payment required
     - `409`: Conflict
-    - `500`: Internal server error
 
 #### Verification
 
@@ -159,7 +168,6 @@ To run the application locally:
     - `400`: Bad request
     - `401`: Unauthorized
     - `404`: Not found
-    - `500`: Internal server error
 
 - `GET /api/v1/status`
   - Get verification status
@@ -170,7 +178,6 @@ To run the application locally:
     - `200`: Success
     - `400`: Bad request
     - `404`: Not found
-    - `500`: Internal server error
 
 ### Webhook Endpoints
 
@@ -181,7 +188,6 @@ To run the application locally:
   - Responses:
     - `200`: Success
     - `400`: Bad request
-    - `500`: Internal server error
 
 - `POST /webhooks/idenfy/id-expiration`
   - Process document expiration notification (Not implemented)
