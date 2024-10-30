@@ -103,7 +103,7 @@ Refer to `internal/configs/config.go` for the implementation details of these co
 To start the server and MongoDB using Docker Compose:
 
 ```bash
-docker-compose up -d --build
+docker-compose up -d
 ```
 
 ### Running Locally
