@@ -37,8 +37,8 @@ type TFChain struct {
 	WsProviderURL string `env:"TFCHAIN_WS_PROVIDER_URL" env-default:"wss://tfchain.grid.tf"`
 }
 type Verification struct {
-	SuspiciousVerificationOutcome string `env:"VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME" env-default:"verified"`
-	ExpiredDocumentOutcome        string `env:"VERIFICATION_EXPIRED_DOCUMENT_OUTCOME" env-default:"unverified"`
+	SuspiciousVerificationOutcome string `env:"VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME" env-default:"APPROVED"`
+	ExpiredDocumentOutcome        string `env:"VERIFICATION_EXPIRED_DOCUMENT_OUTCOME" env-default:"REJECTED"`
 	MinBalanceToVerifyAccount     uint64 `env:"VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT" env-default:"10000000"`
 }
 type IPLimiter struct {

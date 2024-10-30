@@ -67,8 +67,8 @@ The application uses environment variables for configuration. Here's a list of a
 
 ### Verification Settings
 
-- `VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME`: Outcome for suspicious verifications (default: "verified")
-- `VERIFICATION_EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: "unverified")
+- `VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME`: Outcome for suspicious verifications (default: "APPROVED")
+- `VERIFICATION_EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: "REJECTED")
 - `VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance in unitTFT required to verify an account (default: 10000000)
 
 ### Rate Limiting
