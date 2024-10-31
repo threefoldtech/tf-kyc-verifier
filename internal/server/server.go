@@ -53,44 +53,22 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	ipLimiterConfig := limiter.Config{
 		Max:                    config.IPLimiter.MaxTokenRequests,
 		Expiration:             time.Duration(config.IPLimiter.TokenExpiration) * time.Minute,
-		SkipFailedRequests:     false,
+		SkipFailedRequests:     true,
 		SkipSuccessfulRequests: false,
 		Storage:                ipLimiterstore,
 		// skip the limiter for localhost
 		Next: func(c *fiber.Ctx) bool {
-			return c.IP() == "127.0.0.1"
+			// skip the limiter if the keyGenerator returns "127.0.0.1"
+			return extractIPFromRequest(c) == "127.0.0.1"
 		},
 		KeyGenerator: func(c *fiber.Ctx) string {
-			// Check for X-Forwarded-For header
-			if ip := c.Get("X-Forwarded-For"); ip != "" {
-				ips := strings.Split(ip, ",")
-				if len(ips) > 0 {
-					// return the first non-private ip in the list
-					for _, ip := range ips {
-						if net.ParseIP(strings.TrimSpace(ip)) != nil && !net.ParseIP(strings.TrimSpace(ip)).IsPrivate() {
-							return strings.TrimSpace(ip)
-						}
-					}
-				}
-			}
-
-			// Check for X-Real-IP header if not a private IP
-			if ip := c.Get("X-Real-IP"); ip != "" {
-				if net.ParseIP(strings.TrimSpace(ip)) != nil && !net.ParseIP(strings.TrimSpace(ip)).IsPrivate() {
-					return strings.TrimSpace(ip)
-				}
-			}
-
-			// Fall back to RemoteIP() if no proxy headers are present
-			ip := c.IP()
-			if parsedIP := net.ParseIP(ip); parsedIP != nil {
-				if !parsedIP.IsPrivate() {
-					return ip
-				}
-			}
-
-			// If we still have a private IP, return a default value that will be skipped by the limiter
-			return "127.0.0.1"
+			logger.Debug("client IPs detected by the limiter",
+				zap.String("remoteIp", c.IP()),
+				zap.String("X-Forwarded-For", c.Get("X-Forwarded-For")),
+				zap.String("X-Real-IP", c.Get("X-Real-IP")),
+				zap.Strings("ips", c.IPs()),
+			)
+			return extractIPFromRequest(c)
 		},
 	}
 	idLimiterStore := mongodb.New(mongodb.Config{
@@ -103,7 +81,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	idLimiterConfig := limiter.Config{
 		Max:                    config.IDLimiter.MaxTokenRequests,
 		Expiration:             time.Duration(config.IDLimiter.TokenExpiration) * time.Minute,
-		SkipFailedRequests:     false,
+		SkipFailedRequests:     true,
 		SkipSuccessfulRequests: false,
 		Storage:                idLimiterStore,
 		// Use client id as key to limit the number of requests per client
@@ -136,7 +114,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	if err != nil {
 		logger.Fatal("Failed to initialize substrate client", zap.Error(err))
 	}
-	kycService := services.NewKYCService(verificationRepo, tokenRepo, idenfyClient, substrateClient, &config.Verification, logger)
+	kycService := services.NewKYCService(verificationRepo, tokenRepo, idenfyClient, substrateClient, config, logger)
 
 	// Initialize handler
 	handler := handlers.NewHandler(kycService, logger)
@@ -156,6 +134,37 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	webhooks.Post("/id-expiration", handler.ProcessDocExpirationNotification())
 
 	return &Server{app: app, config: config, logger: logger}
+}
+
+func extractIPFromRequest(c *fiber.Ctx) string {
+	// Check for X-Forwarded-For header
+	if ip := c.Get("X-Forwarded-For"); ip != "" {
+		ips := strings.Split(ip, ",")
+		if len(ips) > 0 {
+
+			for _, ip := range ips {
+				// return the first non-private ip in the list
+				if net.ParseIP(strings.TrimSpace(ip)) != nil && !net.ParseIP(strings.TrimSpace(ip)).IsPrivate() {
+					return strings.TrimSpace(ip)
+				}
+			}
+		}
+	}
+	// Check for X-Real-IP header if not a private IP
+	if ip := c.Get("X-Real-IP"); ip != "" {
+		if net.ParseIP(strings.TrimSpace(ip)) != nil && !net.ParseIP(strings.TrimSpace(ip)).IsPrivate() {
+			return strings.TrimSpace(ip)
+		}
+	}
+	// Fall back to RemoteIP() if no proxy headers are present
+	ip := c.IP()
+	if parsedIP := net.ParseIP(ip); parsedIP != nil {
+		if !parsedIP.IsPrivate() {
+			return ip
+		}
+	}
+	// If we still have a private IP, return a default value that will be skipped by the limiter
+	return "127.0.0.1"
 }
 
 func (s *Server) Start() {

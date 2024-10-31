@@ -18,14 +18,9 @@ import (
 )
 
 type Idenfy struct {
-	client          *fasthttp.Client
-	accessKey       string
-	secretKey       string
-	baseURL         string
-	callbackSignKey []byte
-	callbackUrl     string
-	devMode         bool
-	logger          *logger.Logger
+	client *fasthttp.Client
+	config *configs.Idenfy
+	logger *logger.Logger
 }
 
 const (
@@ -34,19 +29,14 @@ const (
 
 func New(config configs.Idenfy, logger *logger.Logger) *Idenfy {
 	return &Idenfy{
-		baseURL:         config.BaseURL,
-		client:          &fasthttp.Client{},
-		accessKey:       config.APIKey,
-		secretKey:       config.APISecret,
-		callbackSignKey: []byte(config.CallbackSignKey),
-		callbackUrl:     config.CallbackUrl,
-		devMode:         config.DevMode,
-		logger:          logger,
+		client: &fasthttp.Client{},
+		config: &config,
+		logger: logger,
 	}
 }
 
 func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string) (models.Token, error) { // TODO: Refactor
-	url := c.baseURL + VerificationSessionEndpoint
+	url := c.config.BaseURL + VerificationSessionEndpoint
 
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
@@ -56,11 +46,11 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	req.Header.Set("Content-Type", "application/json")
 
 	// Set basic auth
-	authStr := c.accessKey + ":" + c.secretKey
+	authStr := c.config.APIKey + ":" + c.config.APISecret
 	auth := base64.StdEncoding.EncodeToString([]byte(authStr))
 	req.Header.Set("Authorization", "Basic "+auth)
 
-	RequestBody := c.createVerificationSessionRequestBody(clientID, c.devMode)
+	RequestBody := c.createVerificationSessionRequestBody(clientID, c.config.DevMode)
 
 	jsonBody, err := json.Marshal(RequestBody)
 	if err != nil {
@@ -91,19 +81,19 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 // verify signature of the callback
 func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHeader string) error {
-	if len(c.callbackSignKey) < 1 {
+	if len(c.config.CallbackSignKey) < 1 {
 		return errors.New("callback was received but no signature key was provided")
 	}
 	sig, err := hex.DecodeString(sigHeader)
 	if err != nil {
 		return err
 	}
-	mac := hmac.New(sha256.New, c.callbackSignKey)
+	mac := hmac.New(sha256.New, []byte(c.config.CallbackSignKey))
 
 	mac.Write(body)
 
 	if !hmac.Equal(sig, mac.Sum(nil)) {
-		c.logger.Error("Signature verification failed", zap.String("sigHeader", sigHeader), zap.String("key", string(c.callbackSignKey)), zap.String("mac", hex.EncodeToString(mac.Sum(nil))))
+		c.logger.Error("Signature verification failed", zap.String("sigHeader", sigHeader), zap.String("key", string(c.config.CallbackSignKey)), zap.String("mac", hex.EncodeToString(mac.Sum(nil))))
 		return errors.New("signature verification failed")
 	}
 	return nil
@@ -114,7 +104,7 @@ func (c *Idenfy) createVerificationSessionRequestBody(clientID string, devMode b
 	RequestBody := map[string]interface{}{
 		"clientId":            clientID,
 		"generateDigitString": true,
-		"callbackUrl":         c.callbackUrl,
+		"callbackUrl":         c.config.CallbackUrl,
 	}
 	if devMode {
 		RequestBody["expiryTime"] = 30

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	domain = "kyc1.gent01.dev.grid.tf"
+	domain = "kyc.qa.grid.tf"
 )
 
 // Generate test auth data for development use

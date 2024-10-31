@@ -56,7 +56,7 @@ The application uses environment variables for configuration. Here's a list of a
 - `IDENFY_API_KEY`: API key for iDenfy service (required) (note: make sure to use correct iDenfy API key for the environment dev, test, and production) (iDenfy dev -> TFChain Devnet, iDenfy test -> TFChain QAnet, iDenfy prod -> TFChain Testnet and Mainnet)
 - `IDENFY_API_SECRET`: API secret for iDenfy service (required)
 - `IDENFY_BASE_URL`: Base URL for iDenfy API (default: "<https://ivs.idenfy.com>")
-- `IDENFY_CALLBACK_SIGN_KEY`: Callback signing key for iDenfy webhooks (required) (note: should match the signing key in iDenfy dashboard for the related environment)
+- `IDENFY_CALLBACK_SIGN_KEY`: Callback signing key for iDenfy webhooks (required) (note: should match the signing key in iDenfy dashboard for the related environment and should be at least 32 characters long)
 - `IDENFY_WHITELISTED_IPS`: Comma-separated list of whitelisted IPs for iDenfy callbacks
 - `IDENFY_DEV_MODE`: Enable development mode for iDenfy integration (default: false) (note: works only in iDenfy dev environment, enabling it in test or production environment will cause iDenfy to reject the requests)
 - `IDENFY_CALLBACK_URL`: URL for iDenfy verification update callbacks. (example: `https://{KYC-SERVICE-DOMAIN}/webhooks/idenfy/verification-update`)
@@ -93,6 +93,13 @@ The application uses environment variables for configuration. Here's a list of a
 - `DEBUG`: Enable debug logging (default: false)
 
 To configure these options, you can either set them as environment variables or include them in your `.env` file.
+
+Regarding the iDenfy signing key, it's best to use key composed of alphanumeric characters to avoid such issues.
+You can generate a random key using the following command:
+
+```bash
+cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
+```
 
 Refer to `internal/configs/config.go` for the implementation details of these configuration options.
 

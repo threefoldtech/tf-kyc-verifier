@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"math/big"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,14 +27,17 @@ type kycService struct {
 	IdenfySuffix     string
 }
 
-func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Verification, logger *logger.Logger) KYCService {
+func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Config, logger *logger.Logger) KYCService {
 	chainName, err := substrateClient.GetChainName()
 	if err != nil {
 		panic(errors.NewInternalError("error getting chain name", err))
 	}
 	chainNameParts := strings.Split(chainName, " ")
 	chainNetworkName := strings.ToLower(chainNameParts[len(chainNameParts)-1])
-	return &kycService{verificationRepo: verificationRepo, tokenRepo: tokenRepo, idenfy: idenfy, substrate: substrateClient, config: config, logger: logger, IdenfySuffix: chainNetworkName}
+	if config.Idenfy.Namespace != "" {
+		chainNetworkName = config.Idenfy.Namespace + ":" + chainNetworkName
+	}
+	return &kycService{verificationRepo: verificationRepo, tokenRepo: tokenRepo, idenfy: idenfy, substrate: substrateClient, config: &config.Verification, logger: logger, IdenfySuffix: chainNetworkName}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -127,6 +131,16 @@ func (s *kycService) GetVerificationData(ctx context.Context, clientID string) (
 }
 
 func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string) (*models.VerificationOutcome, error) {
+	// check first if the clientID is in alwaysVerifiedAddresses
+	if s.config.AlwaysVerifiedIDs != nil && slices.Contains(s.config.AlwaysVerifiedIDs, clientID) {
+		final := true
+		return &models.VerificationOutcome{
+			Final:     &final,
+			ClientID:  clientID,
+			IdenfyRef: "",
+			Outcome:   models.OutcomeApproved,
+		}, nil
+	}
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
