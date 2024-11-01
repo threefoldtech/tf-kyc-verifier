@@ -123,8 +123,8 @@ func New(config *configs.Config, logger logger.Logger) *Server {
 	// status route accepts either client_id or twin_id as query parameters
 	v1.Get("/status", handler.GetVerificationStatus())
 	v1.Get("/health", handler.HealthCheck(db))
-	v1.Get("/configs", handler.GetAppConfigs())
-	v1.Get("/version", handler.GetAppVersion())
+	v1.Get("/configs", handler.GetServiceConfigs())
+	v1.Get("/version", handler.GetServiceVersion())
 	// Webhook routes
 	webhooks := app.Group("/webhooks/idenfy")
 	webhooks.Post("/verification-update", handler.ProcessVerificationResult())

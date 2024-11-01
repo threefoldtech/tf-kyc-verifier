@@ -221,23 +221,23 @@ func (h *Handler) HealthCheck(dbClient *mongo.Client) fiber.Handler {
 	}
 }
 
-// @Summary		Get App Configs
-// @Description	Returns the app configs
+// @Summary		Get Service Configs
+// @Description	Returns the service configs
 // @Tags			Misc
 // @Success		200	{object}	responses.AppConfigsResponse
 // @Router			/api/v1/configs [get]
-func (h *Handler) GetAppConfigs() fiber.Handler {
+func (h *Handler) GetServiceConfigs() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"result": h.config.GetPublicConfig()})
 	}
 }
 
-// @Summary		Get App Version
-// @Description	Returns the app version
+// @Summary		Get Service Version
+// @Description	Returns the service version
 // @Tags			Misc
 // @Success		200	{object}	string
 // @Router			/api/v1/version [get]
-func (h *Handler) GetAppVersion() fiber.Handler {
+func (h *Handler) GetServiceVersion() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		response := responses.AppVersionResponse{Version: build.Version}
 		return c.JSON(fiber.Map{"result": response})
