@@ -14,7 +14,6 @@ import (
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
-	"go.uber.org/zap"
 )
 
 // CORS returns a CORS middleware
@@ -132,7 +131,7 @@ func ValidateChallenge(address, signature, challenge, expectedDomain string, cha
 	return nil
 }
 
-func NewLoggingMiddleware(logger *logger.Logger) fiber.Handler {
+func NewLoggingMiddleware(logger *logger.LoggerW) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		path := c.Path()
@@ -140,14 +139,14 @@ func NewLoggingMiddleware(logger *logger.Logger) fiber.Handler {
 		ip := c.IP()
 
 		// Log request
-		logger.Info("Incoming request",
-			zap.String("method", method),
-			zap.String("path", path),
-			zap.Any("queries", c.Queries()),
-			zap.String("ip", ip),
-			zap.String("user_agent", string(c.Request().Header.UserAgent())),
-			zap.String("x-client-id header", c.Get("X-Client-ID")),
-		)
+		logger.Info("Incoming request", map[string]interface{}{
+			"method":     method,
+			"path":       path,
+			"queries":    c.Queries(),
+			"ip":         ip,
+			"user_agent": string(c.Request().Header.UserAgent()),
+			"headers":    c.GetReqHeaders(),
+		})
 
 		// Handle request
 		err := c.Next()
@@ -160,25 +159,25 @@ func NewLoggingMiddleware(logger *logger.Logger) fiber.Handler {
 		responseSize := len(c.Response().Body())
 
 		// Log the response
-		logFields := []zap.Field{
-			zap.String("method", method),
-			zap.String("path", path),
-			zap.String("ip", ip),
-			zap.Int("status", status),
-			zap.Duration("duration", duration),
-			zap.Int("response_size", responseSize),
+		logFields := map[string]interface{}{
+			"method":        method,
+			"path":          path,
+			"ip":            ip,
+			"status":        status,
+			"duration":      duration,
+			"response_size": responseSize,
 		}
 
 		// Add error if present
 		if err != nil {
-			logFields = append(logFields, zap.Error(err))
+			logFields["error"] = err
 			if status >= 500 {
-				logger.Error("Request failed", logFields...)
+				logger.Error("Request failed", logFields)
 			} else {
-				logger.Info("Request failed", logFields...)
+				logger.Info("Request failed", logFields)
 			}
 		} else {
-			logger.Info("Request completed", logFields...)
+			logger.Info("Request completed", logFields)
 		}
 
 		return err

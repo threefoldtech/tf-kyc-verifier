@@ -7,7 +7,6 @@ import (
 	"example.com/tfgrid-kyc-service/internal/configs"
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/server"
-	"go.uber.org/zap"
 )
 
 //	@title			TFGrid KYC API
@@ -27,11 +26,11 @@ func main() {
 
 	logger.Init(config.Log)
 	logger := logger.GetLogger()
-	defer logger.Sync()
+	// defer logger.Sync()
 
-	logger.Debug("Configuration loaded successfully", zap.Any("config", config)) // TODO: remove me after testing
+	logger.Debug("Configuration loaded successfully", map[string]interface{}{"config": config}) // TODO: remove me after testing
 
 	server := server.New(config, logger)
-	logger.Info("Starting server on port:", zap.String("port", config.Server.Port))
+	logger.Info("Starting server on port:", map[string]interface{}{"port": config.Server.Port})
 	server.Start()
 }

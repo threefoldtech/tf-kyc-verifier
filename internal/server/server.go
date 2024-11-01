@@ -25,17 +25,16 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/storage/mongodb"
 	"github.com/gofiber/swagger"
-	"go.uber.org/zap"
 )
 
 // implement server struct that have fiber app and config
 type Server struct {
 	app    *fiber.App
 	config *configs.Config
-	logger *logger.Logger
+	logger *logger.LoggerW
 }
 
-func New(config *configs.Config, logger *logger.Logger) *Server {
+func New(config *configs.Config, logger *logger.LoggerW) *Server {
 	// debug log
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  15 * time.Second,
@@ -62,12 +61,6 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 			return extractIPFromRequest(c) == "127.0.0.1"
 		},
 		KeyGenerator: func(c *fiber.Ctx) string {
-			logger.Debug("client IPs detected by the limiter",
-				zap.String("remoteIp", c.IP()),
-				zap.String("X-Forwarded-For", c.Get("X-Forwarded-For")),
-				zap.String("X-Real-IP", c.Get("X-Real-IP")),
-				zap.Strings("ips", c.IPs()),
-			)
 			return extractIPFromRequest(c)
 		},
 	}
@@ -99,7 +92,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 	// Database connection
 	db, err := repository.ConnectToMongoDB(config.MongoDB.URI)
 	if err != nil {
-		logger.Fatal("Failed to connect to MongoDB", zap.Error(err))
+		logger.Fatal("Failed to connect to MongoDB", map[string]interface{}{"error": err})
 	}
 	database := db.Database(config.MongoDB.DatabaseName)
 
@@ -112,7 +105,7 @@ func New(config *configs.Config, logger *logger.Logger) *Server {
 
 	substrateClient, err := substrate.New(config.TFChain, logger)
 	if err != nil {
-		logger.Fatal("Failed to initialize substrate client", zap.Error(err))
+		logger.Fatal("Failed to initialize substrate client", map[string]interface{}{"error": err})
 	}
 	kycService := services.NewKYCService(verificationRepo, tokenRepo, idenfyClient, substrateClient, config, logger)
 
@@ -173,17 +166,17 @@ func (s *Server) Start() {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 		// Graceful shutdown
-		s.logger.Info("Shutting down server...")
+		s.logger.Info("Shutting down server...", map[string]interface{}{})
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		if err := s.app.ShutdownWithContext(ctx); err != nil {
-			s.logger.Error("Server forced to shutdown:", zap.Error(err))
+			s.logger.Error("Server forced to shutdown:", map[string]interface{}{"error": err})
 		}
 	}()
 
 	// Start server
 	if err := s.app.Listen(":" + s.config.Server.Port); err != nil && err != http.ErrServerClosed {
-		s.logger.Fatal("Server startup failed", zap.Error(err))
+		s.logger.Fatal("Server startup failed", map[string]interface{}{"error": err})
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.uber.org/zap"
 
 	"example.com/tfgrid-kyc-service/internal/errors"
 	"example.com/tfgrid-kyc-service/internal/logger"
@@ -20,10 +19,10 @@ import (
 
 type Handler struct {
 	kycService services.KYCService
-	logger     *logger.Logger
+	logger     *logger.LoggerW
 }
 
-func NewHandler(kycService services.KYCService, logger *logger.Logger) *Handler {
+func NewHandler(kycService services.KYCService, logger *logger.LoggerW) *Handler {
 	return &Handler{kycService: kycService, logger: logger}
 }
 
@@ -106,7 +105,7 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 		twinID := c.Query("twin_id")
 
 		if clientID == "" && twinID == "" {
-			h.logger.Warn("Bad request: missing client_id and twin_id")
+			h.logger.Warn("Bad request: missing client_id and twin_id", map[string]interface{}{})
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Either client_id or twin_id must be provided"})
 		}
 		var verification *models.VerificationOutcome
@@ -118,18 +117,18 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 			verification, err = h.kycService.GetVerificationStatusByTwinID(c.Context(), twinID)
 		}
 		if err != nil {
-			h.logger.Error("Failed to get verification status",
-				zap.String("clientID", clientID),
-				zap.String("twinID", twinID),
-				zap.Error(err),
-			)
+			h.logger.Error("Failed to get verification status", map[string]interface{}{
+				"clientID": clientID,
+				"twinID":   twinID,
+				"error":    err,
+			})
 			return HandleError(c, err)
 		}
 		if verification == nil {
-			h.logger.Info("Verification not found",
-				zap.String("clientID", clientID),
-				zap.String("twinID", twinID),
-			)
+			h.logger.Info("Verification not found", map[string]interface{}{
+				"clientID": clientID,
+				"twinID":   twinID,
+			})
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Verification not found"})
 		}
 		response := responses.NewVerificationStatusResponse(verification)
@@ -146,7 +145,10 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 // @Router			/webhooks/idenfy/verification-update [post]
 func (h *Handler) ProcessVerificationResult() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		h.logger.Debug("Received verification update", zap.Any("body", string(c.Body())), zap.Any("headers", &c.Request().Header))
+		h.logger.Debug("Received verification update", map[string]interface{}{
+			"body":    string(c.Body()),
+			"headers": &c.Request().Header,
+		})
 		sigHeader := c.Get("Idenfy-Signature")
 		if len(sigHeader) < 1 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "No signature provided"})
@@ -156,10 +158,14 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 		decoder := json.NewDecoder(bytes.NewReader(body))
 		err := decoder.Decode(&result)
 		if err != nil {
-			h.logger.Error("Error decoding verification update", zap.Error(err))
+			h.logger.Error("Error decoding verification update", map[string]interface{}{
+				"error": err,
+			})
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 		}
-		h.logger.Debug("Verification update after decoding", zap.Any("result", result))
+		h.logger.Debug("Verification update after decoding", map[string]interface{}{
+			"result": result,
+		})
 		err = h.kycService.ProcessVerificationResult(c.Context(), body, sigHeader, result)
 		if err != nil {
 			return HandleError(c, err)
@@ -178,7 +184,7 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// TODO: implement
-		h.logger.Error("Received ID expiration notification but not implemented")
+		h.logger.Error("Received ID expiration notification but not implemented", map[string]interface{}{})
 		return c.SendStatus(fiber.StatusNotImplemented)
 	}
 }

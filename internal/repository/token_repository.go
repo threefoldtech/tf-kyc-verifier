@@ -7,7 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.uber.org/zap"
 
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
@@ -15,10 +14,10 @@ import (
 
 type MongoTokenRepository struct {
 	collection *mongo.Collection
-	logger     *logger.Logger
+	logger     *logger.LoggerW
 }
 
-func NewMongoTokenRepository(db *mongo.Database, logger *logger.Logger) TokenRepository {
+func NewMongoTokenRepository(db *mongo.Database, logger *logger.LoggerW) TokenRepository {
 	repo := &MongoTokenRepository{
 		collection: db.Collection("tokens"),
 		logger:     logger,
@@ -40,7 +39,7 @@ func (r *MongoTokenRepository) createTTLIndex() {
 	)
 
 	if err != nil {
-		r.logger.Error("Error creating TTL index", zap.Error(err))
+		r.logger.Error("Error creating TTL index", map[string]interface{}{"error": err})
 	}
 }
 

@@ -14,20 +14,19 @@ import (
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 	"github.com/valyala/fasthttp"
-	"go.uber.org/zap"
 )
 
 type Idenfy struct {
-	client *fasthttp.Client
-	config *configs.Idenfy
-	logger *logger.Logger
+	client *fasthttp.Client // TODO: Interface
+	config *configs.Idenfy  // TODO: Interface
+	logger *logger.LoggerW
 }
 
 const (
 	VerificationSessionEndpoint = "/api/v2/token"
 )
 
-func New(config configs.Idenfy, logger *logger.Logger) *Idenfy {
+func New(config configs.Idenfy, logger *logger.LoggerW) *Idenfy {
 	return &Idenfy{
 		client: &fasthttp.Client{},
 		config: &config,
@@ -60,7 +59,9 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
-	c.logger.Debug("Preparing iDenfy verification session request", zap.Any("request", req))
+	c.logger.Debug("Preparing iDenfy verification session request", map[string]interface{}{
+		"request": req,
+	})
 	err = c.client.Do(req, resp)
 	if err != nil {
 		return models.Token{}, fmt.Errorf("error sending request: %w", err)
@@ -69,7 +70,9 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
 		return models.Token{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
 	}
-	c.logger.Debug("Received response from iDenfy", zap.Any("response", resp))
+	c.logger.Debug("Received response from iDenfy", map[string]interface{}{
+		"response": resp,
+	})
 
 	var result models.Token
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {
@@ -93,7 +96,11 @@ func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHe
 	mac.Write(body)
 
 	if !hmac.Equal(sig, mac.Sum(nil)) {
-		c.logger.Error("Signature verification failed", zap.String("sigHeader", sigHeader), zap.String("key", string(c.config.CallbackSignKey)), zap.String("mac", hex.EncodeToString(mac.Sum(nil))))
+		c.logger.Error("Signature verification failed", map[string]interface{}{
+			"sigHeader": sigHeader,
+			"key":       string(c.config.CallbackSignKey),
+			"mac":       hex.EncodeToString(mac.Sum(nil)),
+		})
 		return errors.New("signature verification failed")
 	}
 	return nil

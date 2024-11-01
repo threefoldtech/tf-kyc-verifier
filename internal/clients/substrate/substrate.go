@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"sync"
 
 	"example.com/tfgrid-kyc-service/internal/configs"
 	"example.com/tfgrid-kyc-service/internal/logger"
@@ -16,11 +15,10 @@ import (
 
 type Substrate struct {
 	api    *tfchain.Substrate
-	mu     sync.Mutex // TODO: Check if SubstrateAPI is thread safe
-	logger *logger.Logger
+	logger *logger.LoggerW
 }
 
-func New(config configs.TFChain, logger *logger.Logger) (*Substrate, error) {
+func New(config configs.TFChain, logger *logger.LoggerW) (*Substrate, error) {
 	mgr := tfchain.NewManager(config.WsProviderURL)
 	api, err := mgr.Substrate()
 	if err != nil {
@@ -29,7 +27,6 @@ func New(config configs.TFChain, logger *logger.Logger) (*Substrate, error) {
 
 	c := &Substrate{
 		api:    api,
-		mu:     sync.Mutex{},
 		logger: logger,
 	}
 	return c, nil

@@ -11,7 +11,6 @@ import (
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
@@ -21,7 +20,6 @@ func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	client := New(configs.Idenfy{
 		CallbackSignKey: "TestingKey",
 	}, logger)
-	defer logger.Sync()
 
 	assert.NotNil(t, client, "Client is nil")
 	webhook1, err := os.ReadFile("testdata/webhook.1.json")
@@ -33,7 +31,9 @@ func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	err = decoder.Decode(&resp)
 	assert.NoError(t, err)
 	// Basic verification info
-	logger.Info("resp", zap.Any("resp", resp))
+	logger.Info("resp", map[string]interface{}{
+		"resp": resp,
+	})
 	assert.Equal(t, "123", resp.ClientID)
 	assert.Equal(t, "scan-ref", resp.IdenfyRef)
 	assert.Equal(t, "external-ref", resp.ExternalRef)

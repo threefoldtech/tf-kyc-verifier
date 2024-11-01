@@ -1,36 +1,51 @@
 package logger
 
 import (
+	"context"
+	"fmt"
+
 	"example.com/tfgrid-kyc-service/internal/configs"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-type Logger struct {
-	*zap.Logger
+type LoggerW struct {
+	logger Logger
 }
 
-var log *Logger
+var log *LoggerW
 
 func Init(config configs.Log) {
-	debug := config.Debug
-	zapConfig := zap.NewProductionConfig()
-	if debug {
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-	}
-	zapConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	var err error
-
-	zapLog, err := zapConfig.Build()
+	zapLogger, err := NewZapLogger(config.Debug, context.Background())
 	if err != nil {
 		panic(err)
 	}
-	log = &Logger{zapLog}
+
+	log = &LoggerW{logger: zapLogger}
 }
 
-func GetLogger() *Logger {
+func GetLogger() *LoggerW {
 	if log == nil {
 		panic("logger not initialized")
 	}
 	return log
+}
+
+func (lw *LoggerW) Debug(msg string, fields map[string]interface{}) {
+	fmt.Println("Debug", msg, fields)
+	lw.logger.Debug(msg, fields)
+}
+
+func (lw *LoggerW) Info(msg string, fields map[string]interface{}) {
+	lw.logger.Info(msg, fields)
+}
+
+func (lw *LoggerW) Warn(msg string, fields map[string]interface{}) {
+	lw.logger.Warn(msg, fields)
+}
+
+func (lw *LoggerW) Error(msg string, fields map[string]interface{}) {
+	lw.logger.Error(msg, fields)
+}
+
+func (lw *LoggerW) Fatal(msg string, fields map[string]interface{}) {
+	lw.logger.Fatal(msg, fields)
 }

@@ -14,7 +14,6 @@ import (
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
 	"example.com/tfgrid-kyc-service/internal/repository"
-	"go.uber.org/zap"
 )
 
 type kycService struct {
@@ -23,11 +22,11 @@ type kycService struct {
 	idenfy           *idenfy.Idenfy
 	substrate        *substrate.Substrate
 	config           *configs.Verification
-	logger           *logger.Logger
+	logger           *logger.LoggerW
 	IdenfySuffix     string
 }
 
-func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Config, logger *logger.Logger) KYCService {
+func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Config, logger *logger.LoggerW) KYCService {
 	chainName, err := substrateClient.GetChainName()
 	if err != nil {
 		panic(errors.NewInternalError("error getting chain name", err))
@@ -47,7 +46,7 @@ func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo
 func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID string) (*models.Token, bool, error) {
 	isVerified, err := s.IsUserVerified(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error checking if user is verified", zap.String("clientID", clientID), zap.Error(err))
+		s.logger.Error("Error checking if user is verified", map[string]interface{}{"clientID": clientID, "error": err})
 		return nil, false, errors.NewInternalError("error getting verification status from database", err) // db error
 	}
 	if isVerified {
@@ -55,7 +54,7 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 	}
 	token, err_ := s.tokenRepo.GetToken(ctx, clientID)
 	if err_ != nil {
-		s.logger.Error("Error getting token from database", zap.String("clientID", clientID), zap.Error(err_))
+		s.logger.Error("Error getting token from database", map[string]interface{}{"clientID": clientID, "error": err_})
 		return nil, false, errors.NewInternalError("error getting token from database", err_) // db error
 	}
 	// check if token is found and not expired
@@ -71,7 +70,7 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 	// check if user account balance satisfies the minimum required balance, return an error if not
 	hasRequiredBalance, err_ := s.AccountHasRequiredBalance(ctx, clientID)
 	if err_ != nil {
-		s.logger.Error("Error checking if user account has required balance", zap.String("clientID", clientID), zap.Error(err_))
+		s.logger.Error("Error checking if user account has required balance", map[string]interface{}{"clientID": clientID, "error": err_})
 		return nil, false, errors.NewExternalError("error checking if user account has required balance", err_)
 	}
 	if !hasRequiredBalance {
@@ -81,14 +80,14 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 	uniqueClientID := clientID + ":" + s.IdenfySuffix
 	newToken, err_ := s.idenfy.CreateVerificationSession(ctx, uniqueClientID)
 	if err_ != nil {
-		s.logger.Error("Error creating iDenfy verification session", zap.String("clientID", clientID), zap.String("uniqueClientID", uniqueClientID), zap.Error(err_))
+		s.logger.Error("Error creating iDenfy verification session", map[string]interface{}{"clientID": clientID, "uniqueClientID": uniqueClientID, "error": err_})
 		return nil, false, errors.NewExternalError("error creating iDenfy verification session", err_)
 	}
 	// save the token with the original clientID
 	newToken.ClientID = clientID
 	err_ = s.tokenRepo.SaveToken(ctx, &newToken)
 	if err_ != nil {
-		s.logger.Error("Error saving verification token to database", zap.String("clientID", clientID), zap.Error(err))
+		s.logger.Error("Error saving verification token to database", map[string]interface{}{"clientID": clientID, "error": err_})
 	}
 
 	return &newToken, true, nil
@@ -98,7 +97,7 @@ func (s *kycService) DeleteToken(ctx context.Context, clientID string, scanRef s
 
 	err := s.tokenRepo.DeleteToken(ctx, clientID, scanRef)
 	if err != nil {
-		s.logger.Error("Error deleting verification token from database", zap.String("clientID", clientID), zap.String("scanRef", scanRef), zap.Error(err))
+		s.logger.Error("Error deleting verification token from database", map[string]interface{}{"clientID": clientID, "scanRef": scanRef, "error": err})
 		return errors.NewInternalError("error deleting verification token from database", err)
 	}
 	return nil
@@ -106,12 +105,12 @@ func (s *kycService) DeleteToken(ctx context.Context, clientID string, scanRef s
 
 func (s *kycService) AccountHasRequiredBalance(ctx context.Context, address string) (bool, error) {
 	if s.config.MinBalanceToVerifyAccount == 0 {
-		s.logger.Warn("Minimum balance to verify account is 0 which is not recommended", zap.String("address", address))
+		s.logger.Warn("Minimum balance to verify account is 0 which is not recommended", map[string]interface{}{"address": address})
 		return true, nil
 	}
 	balance, err := s.substrate.GetAccountBalance(address)
 	if err != nil {
-		s.logger.Error("Error getting account balance", zap.String("address", address), zap.Error(err))
+		s.logger.Error("Error getting account balance", map[string]interface{}{"address": address, "error": err})
 		return false, errors.NewExternalError("error getting account balance", err)
 	}
 	return balance.Cmp(big.NewInt(int64(s.config.MinBalanceToVerifyAccount))) >= 0, nil
@@ -124,7 +123,7 @@ func (s *kycService) AccountHasRequiredBalance(ctx context.Context, address stri
 func (s *kycService) GetVerificationData(ctx context.Context, clientID string) (*models.Verification, error) {
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
+		s.logger.Error("Error getting verification from database", map[string]interface{}{"clientID": clientID, "error": err})
 		return nil, errors.NewInternalError("error getting verification from database", err)
 	}
 	return verification, nil
@@ -143,7 +142,7 @@ func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string)
 	}
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
+		s.logger.Error("Error getting verification from database", map[string]interface{}{"clientID": clientID, "error": err})
 		return nil, errors.NewInternalError("error getting verification from database", err)
 	}
 	var outcome models.Outcome
@@ -168,7 +167,7 @@ func (s *kycService) GetVerificationStatusByTwinID(ctx context.Context, twinID s
 	// get the address from the twinID
 	address, err := s.substrate.GetAddressByTwinID(twinID)
 	if err != nil {
-		s.logger.Error("Error getting address from twinID", zap.String("twinID", twinID), zap.Error(err))
+		s.logger.Error("Error getting address from twinID", map[string]interface{}{"twinID": twinID, "error": err})
 		return nil, errors.NewExternalError("error looking up twinID address from TFChain", err)
 	}
 	return s.GetVerificationStatus(ctx, address)
@@ -177,25 +176,25 @@ func (s *kycService) GetVerificationStatusByTwinID(ctx context.Context, twinID s
 func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte, sigHeader string, result models.Verification) error {
 	err := s.idenfy.VerifyCallbackSignature(ctx, body, sigHeader)
 	if err != nil {
-		s.logger.Error("Error verifying callback signature", zap.String("sigHeader", sigHeader), zap.Error(err))
+		s.logger.Error("Error verifying callback signature", map[string]interface{}{"sigHeader": sigHeader, "error": err})
 		return errors.NewAuthorizationError("error verifying callback signature", err)
 	}
 	// delete the token with the same clientID and same scanRef
 	result.ClientID = strings.Split(result.ClientID, ":")[0] // TODO: should we check if it have correct suffix? callback misconfiguration maybe?
 	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.IdenfyRef)
 	if err != nil {
-		s.logger.Warn("Error deleting verification token from database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))
+		s.logger.Warn("Error deleting verification token from database", map[string]interface{}{"clientID": result.ClientID, "scanRef": result.IdenfyRef, "error": err})
 	}
 	// if the verification status is EXPIRED, we don't need to save it
 	if result.Status.Overall != nil && *result.Status.Overall != models.Overall("EXPIRED") {
 		// remove idenfy suffix from clientID
 		err = s.verificationRepo.SaveVerification(ctx, &result)
 		if err != nil {
-			s.logger.Error("Error saving verification to database", zap.String("clientID", result.ClientID), zap.String("scanRef", result.IdenfyRef), zap.Error(err))
+			s.logger.Error("Error saving verification to database", map[string]interface{}{"clientID": result.ClientID, "scanRef": result.IdenfyRef, "error": err})
 			return errors.NewInternalError("error saving verification to database", err)
 		}
 	}
-	s.logger.Debug("Verification result processed successfully", zap.Any("result", result))
+	s.logger.Debug("Verification result processed successfully", map[string]interface{}{"result": result})
 	return nil
 }
 
@@ -206,7 +205,7 @@ func (s *kycService) ProcessDocExpirationNotification(ctx context.Context, clien
 func (s *kycService) IsUserVerified(ctx context.Context, clientID string) (bool, error) {
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error getting verification from database", zap.String("clientID", clientID), zap.Error(err))
+		s.logger.Error("Error getting verification from database", map[string]interface{}{"clientID": clientID, "error": err})
 		return false, errors.NewInternalError("error getting verification from database", err)
 	}
 	if verification == nil {
