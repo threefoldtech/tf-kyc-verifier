@@ -11,13 +11,15 @@ import (
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 )
 
-const (
-	domain = "kyc.qa.grid.tf"
-)
-
 // Generate test auth data for development use
 func main() {
-	message := createSignMessage()
+	// get domain from first arg. error if not provided
+	if len(os.Args) < 2 {
+		fmt.Println("Error: Domain is required")
+		os.Exit(1)
+	}
+	domain := os.Args[1]
+	message := createSignMessage(domain)
 	// if no arg provided, generate random keys
 	krSr25519, krEd25519, err := loadKeys()
 	if err != nil {
@@ -55,7 +57,7 @@ func main() {
 	fmt.Println("challenge string (plain text): ", string(bytes))
 }
 
-func createSignMessage() string {
+func createSignMessage(domain string) string {
 	// return a message with the domain and the current timestamp in hex
 	message := fmt.Sprintf("%s:%d", domain, time.Now().Unix())
 	fmt.Println("message: ", message)
@@ -63,7 +65,7 @@ func createSignMessage() string {
 }
 
 func loadKeys() (subkey.KeyPair, subkey.KeyPair, error) {
-	if len(os.Args) < 2 {
+	if len(os.Args) < 3 {
 		krSr25519, err := sr25519.Scheme{}.Generate()
 		if err != nil {
 			return nil, nil, err
@@ -74,11 +76,11 @@ func loadKeys() (subkey.KeyPair, subkey.KeyPair, error) {
 		}
 		return krSr25519, krEd25519, nil
 	} else {
-		krSr25519, err := sr25519.Scheme{}.FromPhrase(os.Args[1], "")
+		krSr25519, err := sr25519.Scheme{}.FromPhrase(os.Args[2], "")
 		if err != nil {
 			return nil, nil, err
 		}
-		krEd25519, err := ed25519.Scheme{}.FromPhrase(os.Args[1], "")
+		krEd25519, err := ed25519.Scheme{}.FromPhrase(os.Args[2], "")
 		if err != nil {
 			return nil, nil, err
 		}
