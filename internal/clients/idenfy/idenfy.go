@@ -59,7 +59,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
 	c.logger.Debug("Preparing iDenfy verification session request", map[string]interface{}{
-		"request": req,
+		"request": jsonBody,
 	})
 	err = c.client.Do(req, resp)
 	if err != nil {
@@ -67,10 +67,14 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
+		c.logger.Debug("Received unexpected status code from iDenfy", map[string]interface{}{
+			"status": resp.StatusCode(),
+			"error":  string(resp.Body()),
+		})
 		return models.Token{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
 	}
 	c.logger.Debug("Received response from iDenfy", map[string]interface{}{
-		"response": resp,
+		"response": string(resp.Body()),
 	})
 
 	var result models.Token
@@ -95,11 +99,6 @@ func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHe
 	mac.Write(body)
 
 	if !hmac.Equal(sig, mac.Sum(nil)) {
-		c.logger.Error("Signature verification failed", map[string]interface{}{
-			"sigHeader": sigHeader,
-			"key":       c.config.GetCallbackSignKey(),
-			"mac":       hex.EncodeToString(mac.Sum(nil)),
-		})
 		return errors.New("signature verification failed")
 	}
 	return nil
