@@ -174,3 +174,11 @@ func NewVerificationDataResponse(verification *models.Verification) *Verificatio
 		ClientID:               verification.ClientID,
 	}
 }
+
+// appConfigsResponse
+type AppConfigsResponse interface{}
+
+// appVersionResponse
+type AppVersionResponse struct {
+	Version string `json:"version"`
+}

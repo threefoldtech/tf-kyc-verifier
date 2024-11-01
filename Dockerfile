@@ -2,13 +2,15 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
+RUN apk add --no-cache git
+
 COPY go.mod go.sum ./
 
 RUN go mod download
 
 COPY . .
-
-RUN CGO_ENABLED=0 GOOS=linux go build -o tfgrid-kyc cmd/api/main.go
+RUN VERSION=`git describe --tags` && \
+    CGO_ENABLED=0 GOOS=linux go build -o tfgrid-kyc -ldflags "-X example.com/tfgrid-kyc-service/internal/build.Version=$VERSION" cmd/api/main.go
 
 FROM alpine:3.19
 

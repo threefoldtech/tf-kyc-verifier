@@ -20,6 +20,21 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/configs": {
+            "get": {
+                "description": "Returns the app configs",
+                "tags": [
+                    "Misc"
+                ],
+                "summary": "Get App Configs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {}
+                    }
+                }
+            }
+        },
         "/api/v1/data": {
             "get": {
                 "description": "Returns the verification data for a client",
@@ -250,6 +265,23 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/version": {
+            "get": {
+                "description": "Returns the app version",
+                "tags": [
+                    "Misc"
+                ],
+                "summary": "Get App Version",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }

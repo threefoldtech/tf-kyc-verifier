@@ -10,6 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
+	"example.com/tfgrid-kyc-service/internal/build"
+	"example.com/tfgrid-kyc-service/internal/configs"
 	"example.com/tfgrid-kyc-service/internal/errors"
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
@@ -19,11 +21,12 @@ import (
 
 type Handler struct {
 	kycService services.KYCService
-	logger     *logger.LoggerW
+	config     *configs.Config
+	logger     logger.Logger
 }
 
-func NewHandler(kycService services.KYCService, logger *logger.LoggerW) *Handler {
-	return &Handler{kycService: kycService, logger: logger}
+func NewHandler(kycService services.KYCService, config *configs.Config, logger logger.Logger) *Handler {
+	return &Handler{kycService: kycService, config: config, logger: logger}
 }
 
 // @Summary		Get or Generate iDenfy Verification Token
@@ -215,6 +218,28 @@ func (h *Handler) HealthCheck(dbClient *mongo.Client) fiber.Handler {
 		}
 
 		return c.JSON(health)
+	}
+}
+
+// @Summary		Get App Configs
+// @Description	Returns the app configs
+// @Tags			Misc
+// @Success		200	{object}	responses.AppConfigsResponse
+// @Router			/api/v1/configs [get]
+func (h *Handler) GetAppConfigs() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"result": h.config.GetPublicConfig()})
+	}
+}
+
+// @Summary		Get App Version
+// @Description	Returns the app version
+// @Tags			Misc
+// @Success		200	{object}	string
+// @Router			/api/v1/version [get]
+func (h *Handler) GetAppVersion() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		return c.JSON(responses.AppVersionResponse{Version: build.Version})
 	}
 }
 

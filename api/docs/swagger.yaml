@@ -153,6 +153,16 @@ info:
   title: TFGrid KYC API
   version: 0.1.0
 paths:
+  /api/v1/configs:
+    get:
+      description: Returns the app configs
+      responses:
+        "200":
+          description: OK
+          schema: {}
+      summary: Get App Configs
+      tags:
+      - Misc
   /api/v1/data:
     get:
       consumes:
@@ -313,6 +323,17 @@ paths:
       summary: Get or Generate iDenfy Verification Token
       tags:
       - Token
+  /api/v1/version:
+    get:
+      description: Returns the app version
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get App Version
+      tags:
+      - Misc
   /webhooks/idenfy/id-expiration:
     post:
       consumes:
