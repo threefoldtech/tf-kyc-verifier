@@ -60,6 +60,7 @@ The application uses environment variables for configuration. Here's a list of a
 - `IDENFY_WHITELISTED_IPS`: Comma-separated list of whitelisted IPs for iDenfy callbacks
 - `IDENFY_DEV_MODE`: Enable development mode for iDenfy integration (default: false) (note: works only in iDenfy dev environment, enabling it in test or production environment will cause iDenfy to reject the requests)
 - `IDENFY_CALLBACK_URL`: URL for iDenfy verification update callbacks. (example: `https://{KYC-SERVICE-DOMAIN}/webhooks/idenfy/verification-update`)
+- `IDENFY_NAMESPACE`: Namespace for isolating diffrent TF KYC verifier services data in same iDenfy backend (default: "") (note: if you are using the same iDenfy backend for multiple services on same tfchain network, you can set this to the unique identifier of the service to isolate the data. don't touch unless you know what you are doing)
 
 ### TFChain Configuration
 
@@ -70,6 +71,7 @@ The application uses environment variables for configuration. Here's a list of a
 - `VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME`: Outcome for suspicious verifications (default: "APPROVED")
 - `VERIFICATION_EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: "REJECTED")
 - `VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance in unitTFT required to verify an account (default: 10000000)
+- `VERIFICATION_ALWAYS_VERIFIED_IDS`: Comma-separated list of TFChain SS58Addresses that are always verified (default: "")
 
 ### Rate Limiting
 
@@ -209,6 +211,19 @@ To run the application locally:
     - `200`: Returns health status
       - `healthy`: All systems operational
       - `degraded`: Some systems experiencing issues
+
+### Miscellaneous
+
+- `GET /api/v1/version`
+  - Get application version
+  - Responses:
+    - `200`: Returns application version
+      - `version`: Application version
+
+- `GET /api/v1/configs`
+  - Get application configurations
+  - Responses:
+    - `200`: Returns application configurations
 
 ### Documentation
 
