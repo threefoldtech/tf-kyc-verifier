@@ -155,12 +155,12 @@ info:
 paths:
   /api/v1/configs:
     get:
-      description: Returns the app configs
+      description: Returns the service configs
       responses:
         "200":
           description: OK
           schema: {}
-      summary: Get App Configs
+      summary: Get Service Configs
       tags:
       - Misc
   /api/v1/data:
@@ -325,13 +325,13 @@ paths:
       - Token
   /api/v1/version:
     get:
-      description: Returns the app version
+      description: Returns the service version
       responses:
         "200":
           description: OK
           schema:
             type: string
-      summary: Get App Version
+      summary: Get Service Version
       tags:
       - Misc
   /webhooks/idenfy/id-expiration:

@@ -22,11 +22,11 @@ const docTemplate = `{
     "paths": {
         "/api/v1/configs": {
             "get": {
-                "description": "Returns the app configs",
+                "description": "Returns the service configs",
                 "tags": [
                     "Misc"
                 ],
-                "summary": "Get App Configs",
+                "summary": "Get Service Configs",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -272,11 +272,11 @@ const docTemplate = `{
         },
         "/api/v1/version": {
             "get": {
-                "description": "Returns the app version",
+                "description": "Returns the service version",
                 "tags": [
                     "Misc"
                 ],
-                "summary": "Get App Version",
+                "summary": "Get Service Version",
                 "responses": {
                     "200": {
                         "description": "OK",
