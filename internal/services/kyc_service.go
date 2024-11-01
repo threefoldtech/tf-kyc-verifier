@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"slices"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"example.com/tfgrid-kyc-service/internal/models"
 	"example.com/tfgrid-kyc-service/internal/repository"
 )
+
+const TFT_CONVERSION_FACTOR = 10000000
 
 type kycService struct {
 	verificationRepo repository.VerificationRepository
@@ -74,7 +77,8 @@ func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID 
 		return nil, false, errors.NewExternalError("error checking if user account has required balance", err_)
 	}
 	if !hasRequiredBalance {
-		return nil, false, errors.NewNotSufficientBalanceError("account does not have the required balance", nil)
+		requiredBalance := s.config.MinBalanceToVerifyAccount / TFT_CONVERSION_FACTOR
+		return nil, false, errors.NewNotSufficientBalanceError(fmt.Sprintf("account does not have the minimum required balance to verify (%d) TFT", requiredBalance), nil)
 	}
 	// prefix clientID with tfchain network prefix
 	uniqueClientID := clientID + ":" + s.IdenfySuffix
@@ -133,6 +137,7 @@ func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string)
 	// check first if the clientID is in alwaysVerifiedAddresses
 	if s.config.AlwaysVerifiedIDs != nil && slices.Contains(s.config.AlwaysVerifiedIDs, clientID) {
 		final := true
+		s.logger.Info("ClientID is in always verified addresses. skipping verification", map[string]interface{}{"clientID": clientID})
 		return &models.VerificationOutcome{
 			Final:     &final,
 			ClientID:  clientID,
@@ -179,8 +184,19 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 		s.logger.Error("Error verifying callback signature", map[string]interface{}{"sigHeader": sigHeader, "error": err})
 		return errors.NewAuthorizationError("error verifying callback signature", err)
 	}
+	clientIDParts := strings.Split(result.ClientID, ":")
+	if len(clientIDParts) < 2 {
+		s.logger.Error("clientID have no network suffix", map[string]interface{}{"clientID": result.ClientID})
+		return errors.NewInternalError("invalid clientID", nil)
+	}
+	networkSuffix := clientIDParts[len(clientIDParts)-1]
+	if networkSuffix != s.IdenfySuffix {
+		s.logger.Error("clientID has different network suffix", map[string]interface{}{"clientID": result.ClientID, "expectedSuffix": s.IdenfySuffix, "actualSuffix": networkSuffix})
+		return errors.NewInternalError("invalid clientID", nil)
+	}
 	// delete the token with the same clientID and same scanRef
-	result.ClientID = strings.Split(result.ClientID, ":")[0] // TODO: should we check if it have correct suffix? callback misconfiguration maybe?
+	result.ClientID = clientIDParts[0]
+
 	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.IdenfyRef)
 	if err != nil {
 		s.logger.Warn("Error deleting verification token from database", map[string]interface{}{"clientID": result.ClientID, "scanRef": result.IdenfyRef, "error": err})
