@@ -217,7 +217,7 @@ func (h *Handler) HealthCheck(dbClient *mongo.Client) fiber.Handler {
 			Errors:    []string{},
 		}
 
-		return c.JSON(health)
+		return c.JSON(fiber.Map{"result": health})
 	}
 }
 
