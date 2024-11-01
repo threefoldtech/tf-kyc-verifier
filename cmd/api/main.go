@@ -26,9 +26,8 @@ func main() {
 
 	logger.Init(config.Log)
 	logger := logger.GetLogger()
-	// defer logger.Sync()
 
-	logger.Debug("Configuration loaded successfully", map[string]interface{}{"config": config}) // TODO: remove me after testing
+	logger.Debug("Configuration loaded successfully", map[string]interface{}{"config": config.GetPublicConfig()})
 
 	server := server.New(config, logger)
 	logger.Info("Starting server on port:", map[string]interface{}{"port": config.Server.Port})
