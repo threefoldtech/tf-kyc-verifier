@@ -86,7 +86,9 @@ func New(config *configs.Config, logger logger.Logger) *Server {
 	// Global middlewares
 	app.Use(middleware.NewLoggingMiddleware(logger))
 	app.Use(middleware.CORS())
-	app.Use(recover.New())
+	recoverConfig := recover.ConfigDefault
+	recoverConfig.EnableStackTrace = true
+	app.Use(recover.New(recoverConfig))
 	app.Use(helmet.New())
 
 	// Database connection

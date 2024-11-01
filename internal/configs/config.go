@@ -1,7 +1,6 @@
 package configs
 
 import (
-	"fmt"
 	"net/url"
 	"slices"
 
@@ -114,7 +113,6 @@ func (c Config) GetPublicConfig() Config {
 	config.Idenfy.APISecret = "[REDACTED]"
 	config.Idenfy.CallbackSignKey = "[REDACTED]"
 	config.MongoDB.URI = "[REDACTED]"
-	fmt.Println("config", config)
 	return config
 }
 

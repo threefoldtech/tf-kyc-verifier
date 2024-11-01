@@ -239,7 +239,8 @@ func (h *Handler) GetAppConfigs() fiber.Handler {
 // @Router			/api/v1/version [get]
 func (h *Handler) GetAppVersion() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		return c.JSON(responses.AppVersionResponse{Version: build.Version})
+		response := responses.AppVersionResponse{Version: build.Version}
+		return c.JSON(fiber.Map{"result": response})
 	}
 }
 
