@@ -14,10 +14,10 @@ import (
 
 type MongoTokenRepository struct {
 	collection *mongo.Collection
-	logger     *logger.LoggerW
+	logger     logger.Logger
 }
 
-func NewMongoTokenRepository(db *mongo.Database, logger *logger.LoggerW) TokenRepository {
+func NewMongoTokenRepository(db *mongo.Database, logger logger.Logger) TokenRepository {
 	repo := &MongoTokenRepository{
 		collection: db.Collection("tokens"),
 		logger:     logger,

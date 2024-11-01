@@ -17,7 +17,7 @@ func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	expectedSig := "249d9a838e9b981935324b02367ca72552aa430fc766f45f77fab7a81f9f3b9d"
 	logger.Init(configs.Log{})
 	logger := logger.GetLogger()
-	client := New(configs.Idenfy{
+	client := New(&configs.Idenfy{
 		CallbackSignKey: "TestingKey",
 	}, logger)
 

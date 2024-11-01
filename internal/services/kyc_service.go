@@ -22,11 +22,11 @@ type kycService struct {
 	idenfy           *idenfy.Idenfy
 	substrate        *substrate.Substrate
 	config           *configs.Verification
-	logger           *logger.LoggerW
+	logger           logger.Logger
 	IdenfySuffix     string
 }
 
-func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Config, logger *logger.LoggerW) KYCService {
+func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy *idenfy.Idenfy, substrateClient *substrate.Substrate, config *configs.Config, logger logger.Logger) KYCService {
 	chainName, err := substrateClient.GetChainName()
 	if err != nil {
 		panic(errors.NewInternalError("error getting chain name", err))

@@ -13,10 +13,10 @@ import (
 
 type MongoVerificationRepository struct {
 	collection *mongo.Collection
-	logger     *logger.LoggerW
+	logger     logger.Logger
 }
 
-func NewMongoVerificationRepository(db *mongo.Database, logger *logger.LoggerW) VerificationRepository {
+func NewMongoVerificationRepository(db *mongo.Database, logger logger.Logger) VerificationRepository {
 	return &MongoVerificationRepository{
 		collection: db.Collection("verifications"),
 		logger:     logger,

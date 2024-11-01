@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"strconv"
 
-	"example.com/tfgrid-kyc-service/internal/configs"
 	"example.com/tfgrid-kyc-service/internal/logger"
 
 	// use tfchain go client
@@ -15,11 +14,11 @@ import (
 
 type Substrate struct {
 	api    *tfchain.Substrate
-	logger *logger.LoggerW
+	logger logger.Logger
 }
 
-func New(config configs.TFChain, logger *logger.LoggerW) (*Substrate, error) {
-	mgr := tfchain.NewManager(config.WsProviderURL)
+func New(config SubstrateConfig, logger logger.Logger) (*Substrate, error) {
+	mgr := tfchain.NewManager(config.GetWsProviderURL())
 	api, err := mgr.Substrate()
 	if err != nil {
 		return nil, fmt.Errorf("substrate connection error: failed to initialize Substrate client: %w", err)

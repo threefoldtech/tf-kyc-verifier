@@ -31,10 +31,10 @@ import (
 type Server struct {
 	app    *fiber.App
 	config *configs.Config
-	logger *logger.LoggerW
+	logger logger.Logger
 }
 
-func New(config *configs.Config, logger *logger.LoggerW) *Server {
+func New(config *configs.Config, logger logger.Logger) *Server {
 	// debug log
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  15 * time.Second,
@@ -101,16 +101,16 @@ func New(config *configs.Config, logger *logger.LoggerW) *Server {
 	verificationRepo := repository.NewMongoVerificationRepository(database, logger)
 
 	// Initialize services
-	idenfyClient := idenfy.New(config.Idenfy, logger)
+	idenfyClient := idenfy.New(&config.Idenfy, logger)
 
-	substrateClient, err := substrate.New(config.TFChain, logger)
+	substrateClient, err := substrate.New(&config.TFChain, logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize substrate client", map[string]interface{}{"error": err})
 	}
 	kycService := services.NewKYCService(verificationRepo, tokenRepo, idenfyClient, substrateClient, config, logger)
 
 	// Initialize handler
-	handler := handlers.NewHandler(kycService, logger)
+	handler := handlers.NewHandler(kycService, config, logger)
 
 	// Routes
 	app.Get("/docs/*", swagger.HandlerDefault)
@@ -121,6 +121,8 @@ func New(config *configs.Config, logger *logger.LoggerW) *Server {
 	// status route accepts either client_id or twin_id as query parameters
 	v1.Get("/status", handler.GetVerificationStatus())
 	v1.Get("/health", handler.HealthCheck(db))
+	v1.Get("/configs", handler.GetAppConfigs())
+	v1.Get("/version", handler.GetAppVersion())
 	// Webhook routes
 	webhooks := app.Group("/webhooks/idenfy")
 	webhooks.Post("/verification-update", handler.ProcessVerificationResult())

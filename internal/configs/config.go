@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"net/url"
 	"slices"
 
@@ -37,9 +38,42 @@ type Idenfy struct {
 	CallbackUrl     string   `env:"IDENFY_CALLBACK_URL" env-required:"false"`
 	Namespace       string   `env:"IDENFY_NAMESPACE" env-default:""`
 }
+
+// implement getter for Idenfy
+func (c *Idenfy) GetCallbackUrl() string {
+	return c.CallbackUrl
+}
+func (c *Idenfy) GetNamespace() string {
+	return c.Namespace
+}
+func (c *Idenfy) GetDevMode() bool {
+	return c.DevMode
+}
+func (c *Idenfy) GetWhitelistedIPs() []string {
+	return c.WhitelistedIPs
+}
+func (c *Idenfy) GetAPIKey() string {
+	return c.APIKey
+}
+func (c *Idenfy) GetAPISecret() string {
+	return c.APISecret
+}
+func (c *Idenfy) GetBaseURL() string {
+	return c.BaseURL
+}
+func (c *Idenfy) GetCallbackSignKey() string {
+	return c.CallbackSignKey
+}
+
 type TFChain struct {
 	WsProviderURL string `env:"TFCHAIN_WS_PROVIDER_URL" env-default:"wss://tfchain.grid.tf"`
 }
+
+// implement getter for TFChain
+func (c *TFChain) GetWsProviderURL() string {
+	return c.WsProviderURL
+}
+
 type Verification struct {
 	SuspiciousVerificationOutcome string   `env:"VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME" env-default:"APPROVED"`
 	ExpiredDocumentOutcome        string   `env:"VERIFICATION_EXPIRED_DOCUMENT_OUTCOME" env-default:"REJECTED"`
@@ -68,8 +102,20 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, errors.NewInternalError("error loading config", err)
 	}
-	cfg.Validate()
+	// cfg.Validate()
 	return cfg, nil
+}
+
+func (c Config) GetPublicConfig() Config {
+	// deducting the secret fields
+	// copy the config to avoid modifying the original
+	config := c
+	config.Idenfy.APIKey = "[REDACTED]"
+	config.Idenfy.APISecret = "[REDACTED]"
+	config.Idenfy.CallbackSignKey = "[REDACTED]"
+	config.MongoDB.URI = "[REDACTED]"
+	fmt.Println("config", config)
+	return config
 }
 
 // validate config

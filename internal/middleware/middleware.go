@@ -131,7 +131,7 @@ func ValidateChallenge(address, signature, challenge, expectedDomain string, cha
 	return nil
 }
 
-func NewLoggingMiddleware(logger *logger.LoggerW) fiber.Handler {
+func NewLoggingMiddleware(logger logger.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		path := c.Path()
