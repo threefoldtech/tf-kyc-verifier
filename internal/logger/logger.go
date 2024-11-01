@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"fmt"
 
 	"example.com/tfgrid-kyc-service/internal/configs"
 )
@@ -30,7 +29,6 @@ func GetLogger() *LoggerW {
 }
 
 func (lw *LoggerW) Debug(msg string, fields map[string]interface{}) {
-	fmt.Println("Debug", msg, fields)
 	lw.logger.Debug(msg, fields)
 }
 
