@@ -10,6 +10,8 @@ type LoggerW struct {
 	logger Logger
 }
 
+type Fields map[string]interface{}
+
 var log *LoggerW
 
 func Init(config configs.Log) {
@@ -28,22 +30,22 @@ func GetLogger() *LoggerW {
 	return log
 }
 
-func (lw *LoggerW) Debug(msg string, fields map[string]interface{}) {
+func (lw *LoggerW) Debug(msg string, fields Fields) {
 	lw.logger.Debug(msg, fields)
 }
 
-func (lw *LoggerW) Info(msg string, fields map[string]interface{}) {
+func (lw *LoggerW) Info(msg string, fields Fields) {
 	lw.logger.Info(msg, fields)
 }
 
-func (lw *LoggerW) Warn(msg string, fields map[string]interface{}) {
+func (lw *LoggerW) Warn(msg string, fields Fields) {
 	lw.logger.Warn(msg, fields)
 }
 
-func (lw *LoggerW) Error(msg string, fields map[string]interface{}) {
+func (lw *LoggerW) Error(msg string, fields Fields) {
 	lw.logger.Error(msg, fields)
 }
 
-func (lw *LoggerW) Fatal(msg string, fields map[string]interface{}) {
+func (lw *LoggerW) Fatal(msg string, fields Fields) {
 	lw.logger.Fatal(msg, fields)
 }

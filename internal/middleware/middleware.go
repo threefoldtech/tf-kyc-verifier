@@ -131,7 +131,7 @@ func ValidateChallenge(address, signature, challenge, expectedDomain string, cha
 	return nil
 }
 
-func NewLoggingMiddleware(logger logger.Logger) fiber.Handler {
+func NewLoggingMiddleware(log logger.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		path := c.Path()
@@ -139,7 +139,7 @@ func NewLoggingMiddleware(logger logger.Logger) fiber.Handler {
 		ip := c.IP()
 
 		// Log request
-		logger.Info("Incoming request", map[string]interface{}{
+		log.Info("Incoming request", logger.Fields{
 			"method":     method,
 			"path":       path,
 			"queries":    c.Queries(),
@@ -159,7 +159,7 @@ func NewLoggingMiddleware(logger logger.Logger) fiber.Handler {
 		responseSize := len(c.Response().Body())
 
 		// Log the response
-		logFields := map[string]interface{}{
+		logFields := logger.Fields{
 			"method":        method,
 			"path":          path,
 			"ip":            ip,
@@ -172,12 +172,12 @@ func NewLoggingMiddleware(logger logger.Logger) fiber.Handler {
 		if err != nil {
 			logFields["error"] = err
 			if status >= 500 {
-				logger.Error("Request failed", logFields)
+				log.Error("Request failed", logFields)
 			} else {
-				logger.Info("Request failed", logFields)
+				log.Info("Request failed", logFields)
 			}
 		} else {
-			logger.Info("Request completed", logFields)
+			log.Info("Request completed", logFields)
 		}
 
 		return err

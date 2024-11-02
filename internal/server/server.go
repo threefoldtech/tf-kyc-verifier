@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -25,112 +27,200 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/storage/mongodb"
 	"github.com/gofiber/swagger"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// implement server struct that have fiber app and config
+// Server represents the HTTP server and its dependencies
 type Server struct {
 	app    *fiber.App
 	config *configs.Config
 	logger logger.Logger
 }
 
-func New(config *configs.Config, logger logger.Logger) *Server {
-	// debug log
-	app := fiber.New(fiber.Config{
+// New creates a new server instance with the given configuration and options
+func New(config *configs.Config, log logger.Logger) (*Server, error) {
+	// Create base context for initialization
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Initialize server with base configuration
+	server := &Server{
+		config: config,
+		logger: log,
+	}
+
+	// Initialize Fiber app with base configuration
+	server.app = fiber.New(fiber.Config{
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		IdleTimeout:  20 * time.Second,
 		BodyLimit:    512 * 1024, // 512KB
 	})
-	// Setup Limter Config and store
-	ipLimiterstore := mongodb.New(mongodb.Config{
-		ConnectionURI: config.MongoDB.URI,
-		Database:      config.MongoDB.DatabaseName,
+
+	// Initialize core components
+	if err := server.initializeCore(ctx); err != nil {
+		return nil, fmt.Errorf("failed to initialize core components: %w", err)
+	}
+
+	return server, nil
+}
+
+// initializeCore sets up the core components of the server
+func (s *Server) initializeCore(ctx context.Context) error {
+	// Setup middleware
+	if err := s.setupMiddleware(); err != nil {
+		return fmt.Errorf("failed to setup middleware: %w", err)
+	}
+
+	// Setup database
+	dbClient, db, err := s.setupDatabase(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to setup database: %w", err)
+	}
+
+	// Setup repositories
+	repos, err := s.setupRepositories(db)
+	if err != nil {
+		return fmt.Errorf("failed to setup repositories: %w", err)
+	}
+
+	// Setup services
+	service, err := s.setupServices(repos)
+	if err != nil {
+		return fmt.Errorf("failed to setup services: %w", err)
+	}
+
+	// Setup routes
+	if err := s.setupRoutes(service, dbClient); err != nil {
+		return fmt.Errorf("failed to setup routes: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Server) setupMiddleware() error {
+	s.logger.Debug("Setting up middleware", nil)
+
+	// Setup rate limiter stores
+	ipLimiterStore := mongodb.New(mongodb.Config{
+		ConnectionURI: s.config.MongoDB.URI,
+		Database:      s.config.MongoDB.DatabaseName,
 		Collection:    "ip_limit",
 		Reset:         false,
 	})
-	ipLimiterConfig := limiter.Config{
-		Max:                    config.IPLimiter.MaxTokenRequests,
-		Expiration:             time.Duration(config.IPLimiter.TokenExpiration) * time.Minute,
-		SkipFailedRequests:     true,
-		SkipSuccessfulRequests: false,
-		Storage:                ipLimiterstore,
-		// skip the limiter for localhost
-		Next: func(c *fiber.Ctx) bool {
-			// skip the limiter if the keyGenerator returns "127.0.0.1"
-			return extractIPFromRequest(c) == "127.0.0.1"
-		},
-		KeyGenerator: func(c *fiber.Ctx) string {
-			return extractIPFromRequest(c)
-		},
-	}
+
 	idLimiterStore := mongodb.New(mongodb.Config{
-		ConnectionURI: config.MongoDB.URI,
-		Database:      config.MongoDB.DatabaseName,
+		ConnectionURI: s.config.MongoDB.URI,
+		Database:      s.config.MongoDB.DatabaseName,
 		Collection:    "id_limit",
 		Reset:         false,
 	})
 
+	// Configure rate limiters
+	ipLimiterConfig := limiter.Config{
+		Max:        s.config.IPLimiter.MaxTokenRequests,
+		Expiration: time.Duration(s.config.IPLimiter.TokenExpiration) * time.Minute,
+		Storage:    ipLimiterStore,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return extractIPFromRequest(c)
+		},
+		Next: func(c *fiber.Ctx) bool {
+			return extractIPFromRequest(c) == "127.0.0.1"
+		},
+		SkipFailedRequests: true,
+	}
+
 	idLimiterConfig := limiter.Config{
-		Max:                    config.IDLimiter.MaxTokenRequests,
-		Expiration:             time.Duration(config.IDLimiter.TokenExpiration) * time.Minute,
-		SkipFailedRequests:     true,
-		SkipSuccessfulRequests: false,
-		Storage:                idLimiterStore,
-		// Use client id as key to limit the number of requests per client
+		Max:        s.config.IDLimiter.MaxTokenRequests,
+		Expiration: time.Duration(s.config.IDLimiter.TokenExpiration) * time.Minute,
+		Storage:    idLimiterStore,
 		KeyGenerator: func(c *fiber.Ctx) string {
 			return c.Get("X-Client-ID")
 		},
+		SkipFailedRequests: true,
 	}
 
-	// Global middlewares
-	app.Use(middleware.NewLoggingMiddleware(logger))
-	app.Use(middleware.CORS())
-	recoverConfig := recover.ConfigDefault
-	recoverConfig.EnableStackTrace = true
-	app.Use(recover.New(recoverConfig))
-	app.Use(helmet.New())
+	// Apply middleware
+	s.app.Use(middleware.NewLoggingMiddleware(s.logger))
+	s.app.Use(middleware.CORS())
+	s.app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
+	s.app.Use(helmet.New())
+	s.app.Use(limiter.New(ipLimiterConfig))
+	s.app.Use(limiter.New(idLimiterConfig))
 
-	// Database connection
-	db, err := repository.ConnectToMongoDB(config.MongoDB.URI)
+	return nil
+}
+
+func (s *Server) setupDatabase(ctx context.Context) (*mongo.Client, *mongo.Database, error) {
+	s.logger.Debug("Connecting to database", nil)
+
+	client, err := repository.ConnectToMongoDB(ctx, s.config.MongoDB.URI)
 	if err != nil {
-		logger.Fatal("Failed to connect to MongoDB", map[string]interface{}{"error": err})
+		return nil, nil, errors.Join(fmt.Errorf("failed to connect to MongoDB: %w", err))
 	}
-	database := db.Database(config.MongoDB.DatabaseName)
 
-	// Initialize repositories
-	tokenRepo := repository.NewMongoTokenRepository(database, logger)
-	verificationRepo := repository.NewMongoVerificationRepository(database, logger)
+	return client, client.Database(s.config.MongoDB.DatabaseName), nil
+}
 
-	// Initialize services
-	idenfyClient := idenfy.New(&config.Idenfy, logger)
+type repositories struct {
+	token        repository.TokenRepository
+	verification repository.VerificationRepository
+}
 
-	substrateClient, err := substrate.New(&config.TFChain, logger)
+func (s *Server) setupRepositories(db *mongo.Database) (*repositories, error) {
+	s.logger.Debug("Setting up repositories", nil)
+
+	return &repositories{
+		token:        repository.NewMongoTokenRepository(db, s.logger),
+		verification: repository.NewMongoVerificationRepository(db, s.logger),
+	}, nil
+}
+
+func (s *Server) setupServices(repos *repositories) (services.KYCService, error) {
+	s.logger.Debug("Setting up services", nil)
+
+	idenfyClient := idenfy.New(&s.config.Idenfy, s.logger)
+
+	substrateClient, err := substrate.New(&s.config.TFChain, s.logger)
 	if err != nil {
-		logger.Fatal("Failed to initialize substrate client", map[string]interface{}{"error": err})
+		return nil, fmt.Errorf("failed to initialize substrate client: %w", err)
 	}
-	kycService := services.NewKYCService(verificationRepo, tokenRepo, idenfyClient, substrateClient, config, logger)
 
-	// Initialize handler
-	handler := handlers.NewHandler(kycService, config, logger)
+	return services.NewKYCService(
+		repos.verification,
+		repos.token,
+		idenfyClient,
+		substrateClient,
+		s.config,
+		s.logger,
+	), nil
+}
 
-	// Routes
-	app.Get("/docs/*", swagger.HandlerDefault)
+func (s *Server) setupRoutes(kycService services.KYCService, mongoCl *mongo.Client) error {
+	s.logger.Debug("Setting up routes", nil)
 
-	v1 := app.Group("/api/v1")
-	v1.Post("/token", middleware.AuthMiddleware(config.Challenge), limiter.New(idLimiterConfig), limiter.New(ipLimiterConfig), handler.GetorCreateVerificationToken())
-	v1.Get("/data", middleware.AuthMiddleware(config.Challenge), handler.GetVerificationData())
-	// status route accepts either client_id or twin_id as query parameters
+	handler := handlers.NewHandler(kycService, s.config, s.logger)
+
+	// API routes
+	v1 := s.app.Group("/api/v1")
+	v1.Post("/token", middleware.AuthMiddleware(s.config.Challenge), handler.GetorCreateVerificationToken())
+	v1.Get("/data", middleware.AuthMiddleware(s.config.Challenge), handler.GetVerificationData())
 	v1.Get("/status", handler.GetVerificationStatus())
-	v1.Get("/health", handler.HealthCheck(db))
+	v1.Get("/health", handler.HealthCheck(mongoCl))
 	v1.Get("/configs", handler.GetServiceConfigs())
 	v1.Get("/version", handler.GetServiceVersion())
+
 	// Webhook routes
-	webhooks := app.Group("/webhooks/idenfy")
+	webhooks := s.app.Group("/webhooks/idenfy")
 	webhooks.Post("/verification-update", handler.ProcessVerificationResult())
 	webhooks.Post("/id-expiration", handler.ProcessDocExpirationNotification())
 
-	return &Server{app: app, config: config, logger: logger}
+	// Documentation
+	s.app.Get("/docs/*", swagger.HandlerDefault)
+
+	return nil
 }
 
 func extractIPFromRequest(c *fiber.Ctx) string {
@@ -170,17 +260,16 @@ func (s *Server) Start() {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 		// Graceful shutdown
-		s.logger.Info("Shutting down server...", map[string]interface{}{})
+		s.logger.Info("Shutting down server...", nil)
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-
 		if err := s.app.ShutdownWithContext(ctx); err != nil {
-			s.logger.Error("Server forced to shutdown:", map[string]interface{}{"error": err})
+			s.logger.Error("Server forced to shutdown:", logger.Fields{"error": err})
 		}
 	}()
 
 	// Start server
 	if err := s.app.Listen(":" + s.config.Server.Port); err != nil && err != http.ErrServerClosed {
-		s.logger.Fatal("Server startup failed", map[string]interface{}{"error": err})
+		s.logger.Fatal("Server startup failed", logger.Fields{"error": err})
 	}
 }

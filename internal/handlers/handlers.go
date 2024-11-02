@@ -48,8 +48,9 @@ func NewHandler(kycService services.KYCService, config *configs.Config, logger l
 func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get("X-Client-ID")
-
-		token, isNewToken, err := h.kycService.GetorCreateVerificationToken(c.Context(), clientID)
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
+		token, isNewToken, err := h.kycService.GetorCreateVerificationToken(ctx, clientID)
 		if err != nil {
 			return HandleError(c, err)
 		}
@@ -78,7 +79,9 @@ func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
 func (h *Handler) GetVerificationData() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get("X-Client-ID")
-		verification, err := h.kycService.GetVerificationData(c.Context(), clientID)
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
+		verification, err := h.kycService.GetVerificationData(ctx, clientID)
 		if err != nil {
 			return HandleError(c, err)
 		}
@@ -108,19 +111,20 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 		twinID := c.Query("twin_id")
 
 		if clientID == "" && twinID == "" {
-			h.logger.Warn("Bad request: missing client_id and twin_id", map[string]interface{}{})
+			h.logger.Warn("Bad request: missing client_id and twin_id", nil)
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Either client_id or twin_id must be provided"})
 		}
 		var verification *models.VerificationOutcome
 		var err error
-
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
 		if clientID != "" {
-			verification, err = h.kycService.GetVerificationStatus(c.Context(), clientID)
+			verification, err = h.kycService.GetVerificationStatus(ctx, clientID)
 		} else {
-			verification, err = h.kycService.GetVerificationStatusByTwinID(c.Context(), twinID)
+			verification, err = h.kycService.GetVerificationStatusByTwinID(ctx, twinID)
 		}
 		if err != nil {
-			h.logger.Error("Failed to get verification status", map[string]interface{}{
+			h.logger.Error("Failed to get verification status", logger.Fields{
 				"clientID": clientID,
 				"twinID":   twinID,
 				"error":    err,
@@ -128,7 +132,7 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 			return HandleError(c, err)
 		}
 		if verification == nil {
-			h.logger.Info("Verification not found", map[string]interface{}{
+			h.logger.Info("Verification not found", logger.Fields{
 				"clientID": clientID,
 				"twinID":   twinID,
 			})
@@ -148,7 +152,7 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 // @Router			/webhooks/idenfy/verification-update [post]
 func (h *Handler) ProcessVerificationResult() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		h.logger.Debug("Received verification update", map[string]interface{}{
+		h.logger.Debug("Received verification update", logger.Fields{
 			"body":    string(c.Body()),
 			"headers": &c.Request().Header,
 		})
@@ -161,15 +165,17 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 		decoder := json.NewDecoder(bytes.NewReader(body))
 		err := decoder.Decode(&result)
 		if err != nil {
-			h.logger.Error("Error decoding verification update", map[string]interface{}{
+			h.logger.Error("Error decoding verification update", logger.Fields{
 				"error": err,
 			})
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 		}
-		h.logger.Debug("Verification update after decoding", map[string]interface{}{
+		h.logger.Debug("Verification update after decoding", logger.Fields{
 			"result": result,
 		})
-		err = h.kycService.ProcessVerificationResult(c.Context(), body, sigHeader, result)
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		defer cancel()
+		err = h.kycService.ProcessVerificationResult(ctx, body, sigHeader, result)
 		if err != nil {
 			return HandleError(c, err)
 		}
@@ -187,7 +193,7 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// TODO: implement
-		h.logger.Error("Received ID expiration notification but not implemented", map[string]interface{}{})
+		h.logger.Error("Received ID expiration notification but not implemented", nil)
 		return c.SendStatus(fiber.StatusNotImplemented)
 	}
 }
@@ -199,7 +205,7 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 // @Router			/api/v1/health [get]
 func (h *Handler) HealthCheck(dbClient *mongo.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
 		err := dbClient.Ping(ctx, readpref.Primary())
 		if err != nil {

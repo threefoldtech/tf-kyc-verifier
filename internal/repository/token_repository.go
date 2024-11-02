@@ -27,7 +27,7 @@ func NewMongoTokenRepository(db *mongo.Database, logger logger.Logger) TokenRepo
 }
 
 func (r *MongoTokenRepository) createTTLIndex() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := r.collection.Indexes().CreateOne(
@@ -39,7 +39,7 @@ func (r *MongoTokenRepository) createTTLIndex() {
 	)
 
 	if err != nil {
-		r.logger.Error("Error creating TTL index", map[string]interface{}{"error": err})
+		r.logger.Error("Error creating TTL index", logger.Fields{"error": err})
 	}
 }
 

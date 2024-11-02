@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"example.com/tfgrid-kyc-service/internal/clients/substrate"
+	"example.com/tfgrid-kyc-service/internal/logger"
 )
 
 func main() {
@@ -31,23 +32,23 @@ type LoggerW struct {
 	*log.Logger
 }
 
-func (l *LoggerW) Debug(msg string, fields map[string]interface{}) {
+func (l *LoggerW) Debug(msg string, fields logger.Fields) {
 	l.Println(msg)
 }
 
-func (l *LoggerW) Info(msg string, fields map[string]interface{}) {
+func (l *LoggerW) Info(msg string, fields logger.Fields) {
 	l.Println(msg)
 }
 
-func (l *LoggerW) Warn(msg string, fields map[string]interface{}) {
+func (l *LoggerW) Warn(msg string, fields logger.Fields) {
 	l.Println(msg)
 }
 
-func (l *LoggerW) Error(msg string, fields map[string]interface{}) {
+func (l *LoggerW) Error(msg string, fields logger.Fields) {
 	l.Println(msg)
 }
 
-func (l *LoggerW) Fatal(msg string, fields map[string]interface{}) {
+func (l *LoggerW) Fatal(msg string, fields logger.Fields) {
 	l.Println(msg)
 }
 

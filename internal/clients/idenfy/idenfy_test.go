@@ -16,10 +16,10 @@ import (
 func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	expectedSig := "249d9a838e9b981935324b02367ca72552aa430fc766f45f77fab7a81f9f3b9d"
 	logger.Init(configs.Log{})
-	logger := logger.GetLogger()
+	log := logger.GetLogger()
 	client := New(&configs.Idenfy{
 		CallbackSignKey: "TestingKey",
-	}, logger)
+	}, log)
 
 	assert.NotNil(t, client, "Client is nil")
 	webhook1, err := os.ReadFile("testdata/webhook.1.json")
@@ -31,7 +31,7 @@ func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	err = decoder.Decode(&resp)
 	assert.NoError(t, err)
 	// Basic verification info
-	logger.Info("resp", map[string]interface{}{
+	log.Info("resp", logger.Fields{
 		"resp": resp,
 	})
 	assert.Equal(t, "123", resp.ClientID)

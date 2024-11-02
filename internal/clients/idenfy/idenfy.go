@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"example.com/tfgrid-kyc-service/internal/logger"
 	"example.com/tfgrid-kyc-service/internal/models"
@@ -55,10 +56,15 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 		return models.Token{}, fmt.Errorf("error marshaling request body: %w", err)
 	}
 	req.SetBody(jsonBody)
+	// Set deadline from context
+	deadline, ok := ctx.Deadline()
+	if ok {
+		req.SetTimeout(time.Until(deadline))
+	}
 
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
-	c.logger.Debug("Preparing iDenfy verification session request", map[string]interface{}{
+	c.logger.Debug("Preparing iDenfy verification session request", logger.Fields{
 		"request": jsonBody,
 	})
 	err = c.client.Do(req, resp)
@@ -67,13 +73,13 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
-		c.logger.Debug("Received unexpected status code from iDenfy", map[string]interface{}{
+		c.logger.Debug("Received unexpected status code from iDenfy", logger.Fields{
 			"status": resp.StatusCode(),
 			"error":  string(resp.Body()),
 		})
 		return models.Token{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
 	}
-	c.logger.Debug("Received response from iDenfy", map[string]interface{}{
+	c.logger.Debug("Received response from iDenfy", logger.Fields{
 		"response": string(resp.Body()),
 	})
 

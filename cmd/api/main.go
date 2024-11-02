@@ -25,11 +25,21 @@ func main() {
 	}
 
 	logger.Init(config.Log)
-	logger := logger.GetLogger()
+	log := logger.GetLogger()
 
-	logger.Debug("Configuration loaded successfully", map[string]interface{}{"config": config.GetPublicConfig()})
+	log.Debug("Configuration loaded successfully", logger.Fields{
+		"config": config.GetPublicConfig(),
+	})
 
-	server := server.New(config, logger)
-	logger.Info("Starting server on port:", map[string]interface{}{"port": config.Server.Port})
+	server, err := server.New(config, log)
+	if err != nil {
+		log.Fatal("Failed to create server:", logger.Fields{
+			"error": err,
+		})
+	}
+
+	log.Info("Starting server on port:", logger.Fields{
+		"port": config.Server.Port,
+	})
 	server.Start()
 }

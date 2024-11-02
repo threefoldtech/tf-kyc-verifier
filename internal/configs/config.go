@@ -1,10 +1,10 @@
 package configs
 
 import (
+	"errors"
 	"net/url"
 	"slices"
 
-	"example.com/tfgrid-kyc-service/internal/errors"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -99,7 +99,7 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{}
 	err := cleanenv.ReadEnv(cfg)
 	if err != nil {
-		return nil, errors.NewInternalError("error loading config", err)
+		return nil, errors.Join(errors.New("error loading config"), err)
 	}
 	// cfg.Validate()
 	return cfg, nil
@@ -120,36 +120,36 @@ func (c Config) GetPublicConfig() Config {
 func (c *Config) Validate() error {
 	// iDenfy base URL should be https://ivs.idenfy.com
 	if c.Idenfy.BaseURL != "https://ivs.idenfy.com" {
-		panic("invalid iDenfy base URL")
+		return errors.New("invalid iDenfy base URL")
 	}
 	// CallbackUrl should be valid URL
 	parsedCallbackUrl, err := url.ParseRequestURI(c.Idenfy.CallbackUrl)
 	if err != nil {
-		panic("invalid CallbackUrl")
+		return errors.New("invalid CallbackUrl")
 	}
 	// CallbackSignKey should not be empty
 	if len(c.Idenfy.CallbackSignKey) < 16 {
-		panic("CallbackSignKey should be at least 16 characters long")
+		return errors.New("CallbackSignKey should be at least 16 characters long")
 	}
 	// WsProviderURL should be valid URL and start with wss://
 	if u, err := url.ParseRequestURI(c.TFChain.WsProviderURL); err != nil || u.Scheme != "wss" {
-		panic("invalid WsProviderURL")
+		return errors.New("invalid WsProviderURL")
 	}
 	// domain should not be empty and same as domain in CallbackUrl
 	if parsedCallbackUrl.Host != c.Challenge.Domain {
-		panic("invalid Challenge Domain. It should be same as domain in CallbackUrl")
+		return errors.New("invalid Challenge Domain. It should be same as domain in CallbackUrl")
 	}
 	// Window should be greater than 2
 	if c.Challenge.Window < 2 {
-		panic("invalid Challenge Window. It should be greater than 2 otherwise it will be too short and verification can fail in slow networks")
+		return errors.New("invalid Challenge Window. It should be greater than 2 otherwise it will be too short and verification can fail in slow networks")
 	}
 	// SuspiciousVerificationOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.SuspiciousVerificationOutcome) {
-		panic("invalid SuspiciousVerificationOutcome")
+		return errors.New("invalid SuspiciousVerificationOutcome")
 	}
 	// ExpiredDocumentOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.ExpiredDocumentOutcome) {
-		panic("invalid ExpiredDocumentOutcome")
+		return errors.New("invalid ExpiredDocumentOutcome")
 	}
 	return nil
 }
