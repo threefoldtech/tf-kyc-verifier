@@ -10,7 +10,7 @@ import (
 )
 
 //	@title			TFGrid KYC API
-//	@version		0.1.0
+//	@version		0.3.0
 //	@description	This is a KYC service for TFGrid.
 //	@termsOfService	http://swagger.io/terms/
 
