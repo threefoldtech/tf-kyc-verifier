@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"example.com/tfgrid-kyc-service/internal/models"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 type TokenRepository interface {

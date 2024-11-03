@@ -1,7 +1,7 @@
 package responses
 
 import (
-	"example.com/tfgrid-kyc-service/internal/models"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 type ErrorResponse struct {

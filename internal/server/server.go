@@ -12,21 +12,21 @@ import (
 	"syscall"
 	"time"
 
-	_ "example.com/tfgrid-kyc-service/api/docs"
-	"example.com/tfgrid-kyc-service/internal/clients/idenfy"
-	"example.com/tfgrid-kyc-service/internal/clients/substrate"
-	"example.com/tfgrid-kyc-service/internal/configs"
-	"example.com/tfgrid-kyc-service/internal/handlers"
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/middleware"
-	"example.com/tfgrid-kyc-service/internal/repository"
-	"example.com/tfgrid-kyc-service/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/storage/mongodb"
 	"github.com/gofiber/swagger"
+	_ "github.com/threefoldtech/tf-kyc-verifier/api/docs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/idenfy"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/middleware"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/repository"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/services"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -38,7 +38,7 @@ type Server struct {
 }
 
 // New creates a new server instance with the given configuration and options
-func New(config *configs.Config, log logger.Logger) (*Server, error) {
+func New(config *configs.Config, srvLogger logger.Logger) (*Server, error) {
 	// Create base context for initialization
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -46,7 +46,7 @@ func New(config *configs.Config, log logger.Logger) (*Server, error) {
 	// Initialize server with base configuration
 	server := &Server{
 		config: config,
-		logger: log,
+		logger: srvLogger,
 	}
 
 	// Initialize Fiber app with base configuration
@@ -147,8 +147,13 @@ func (s *Server) setupMiddleware() error {
 		EnableStackTrace: true,
 	}))
 	s.app.Use(helmet.New())
-	s.app.Use(limiter.New(ipLimiterConfig))
-	s.app.Use(limiter.New(idLimiterConfig))
+
+	if s.config.IPLimiter.MaxTokenRequests > 0 {
+		s.app.Use("/api/v1/token", limiter.New(ipLimiterConfig))
+	}
+	if s.config.IDLimiter.MaxTokenRequests > 0 {
+		s.app.Use("/api/v1/token", limiter.New(idLimiterConfig))
+	}
 
 	return nil
 }

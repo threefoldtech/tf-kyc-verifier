@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"strconv"
 
-	"example.com/tfgrid-kyc-service/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 
 	// use tfchain go client
 

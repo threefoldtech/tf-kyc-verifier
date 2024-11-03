@@ -1,4 +1,4 @@
-module example.com/tfgrid-kyc-service
+module github.com/threefoldtech/tf-kyc-verifier
 
 go 1.22
 
@@ -81,4 +81,4 @@ require (
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
 
-replace example.com/tfgrid-kyc-service => ./
+replace github.com/threefoldtech/tf-kyc-verifier => ./

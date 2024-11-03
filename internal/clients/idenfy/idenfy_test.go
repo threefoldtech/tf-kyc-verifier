@@ -7,10 +7,10 @@ import (
 	"os"
 	"testing"
 
-	"example.com/tfgrid-kyc-service/internal/configs"
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 func TestClient_DecodeReaderIdentityCallback(t *testing.T) {

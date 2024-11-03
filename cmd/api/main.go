@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	_ "example.com/tfgrid-kyc-service/api/docs"
-	"example.com/tfgrid-kyc-service/internal/configs"
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/server"
+	_ "github.com/threefoldtech/tf-kyc-verifier/api/docs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/server"
 )
 
 //	@title			TFGrid KYC API
@@ -25,20 +25,20 @@ func main() {
 	}
 
 	logger.Init(config.Log)
-	log := logger.GetLogger()
+	srvLogger := logger.GetLogger()
 
-	log.Debug("Configuration loaded successfully", logger.Fields{
+	srvLogger.Debug("Configuration loaded successfully", logger.Fields{
 		"config": config.GetPublicConfig(),
 	})
 
-	server, err := server.New(config, log)
+	server, err := server.New(config, srvLogger)
 	if err != nil {
-		log.Fatal("Failed to create server:", logger.Fields{
+		srvLogger.Error("Failed to create server:", logger.Fields{
 			"error": err,
 		})
 	}
 
-	log.Info("Starting server on port:", logger.Fields{
+	srvLogger.Info("Starting server on port:", logger.Fields{
 		"port": config.Server.Port,
 	})
 	server.Start()

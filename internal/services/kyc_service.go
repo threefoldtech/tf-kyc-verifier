@@ -3,12 +3,12 @@ package services
 import (
 	"strings"
 
-	"example.com/tfgrid-kyc-service/internal/clients/idenfy"
-	"example.com/tfgrid-kyc-service/internal/clients/substrate"
-	"example.com/tfgrid-kyc-service/internal/configs"
-	"example.com/tfgrid-kyc-service/internal/errors"
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/repository"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/idenfy"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/repository"
 )
 
 const TFT_CONVERSION_FACTOR = 10000000

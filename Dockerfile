@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 RUN VERSION=`git describe --tags` && \
-    CGO_ENABLED=0 GOOS=linux go build -o tfgrid-kyc -ldflags "-X example.com/tfgrid-kyc-service/internal/build.Version=$VERSION" cmd/api/main.go
+    CGO_ENABLED=0 GOOS=linux go build -o tfgrid-kyc -ldflags "-X github.com/threefoldtech/tf-kyc-verifier/internal/build.Version=$VERSION" cmd/api/main.go
 
 FROM alpine:3.19
 

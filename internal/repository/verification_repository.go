@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/models"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

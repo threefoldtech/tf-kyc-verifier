@@ -10,13 +10,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
-	"example.com/tfgrid-kyc-service/internal/build"
-	"example.com/tfgrid-kyc-service/internal/configs"
-	"example.com/tfgrid-kyc-service/internal/errors"
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/models"
-	"example.com/tfgrid-kyc-service/internal/responses"
-	"example.com/tfgrid-kyc-service/internal/services"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/build"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/responses"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/services"
 )
 
 type Handler struct {

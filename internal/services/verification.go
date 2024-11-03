@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	"example.com/tfgrid-kyc-service/internal/errors"
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/models"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 func (s *kycService) GetVerificationData(ctx context.Context, clientID string) (*models.Verification, error) {

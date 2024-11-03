@@ -3,7 +3,7 @@ package logger
 import (
 	"context"
 
-	"example.com/tfgrid-kyc-service/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
 )
 
 type LoggerW struct {

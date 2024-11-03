@@ -2,6 +2,7 @@ package configs
 
 import (
 	"errors"
+	"log"
 	"net/url"
 	"slices"
 
@@ -107,7 +108,6 @@ func LoadConfig() (*Config, error) {
 
 func (c Config) GetPublicConfig() Config {
 	// deducting the secret fields
-	// copy the config to avoid modifying the original
 	config := c
 	config.Idenfy.APIKey = "[REDACTED]"
 	config.Idenfy.APISecret = "[REDACTED]"
@@ -118,9 +118,9 @@ func (c Config) GetPublicConfig() Config {
 
 // validate config
 func (c *Config) Validate() error {
-	// iDenfy base URL should be https://ivs.idenfy.com
+	// iDenfy base URL should be https://ivs.idenfy.com. This is the only supported base URL for now.
 	if c.Idenfy.BaseURL != "https://ivs.idenfy.com" {
-		return errors.New("invalid iDenfy base URL")
+		return errors.New("invalid iDenfy base URL. It should be https://ivs.idenfy.com")
 	}
 	// CallbackUrl should be valid URL
 	parsedCallbackUrl, err := url.ParseRequestURI(c.Idenfy.CallbackUrl)
@@ -150,6 +150,18 @@ func (c *Config) Validate() error {
 	// ExpiredDocumentOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.ExpiredDocumentOutcome) {
 		return errors.New("invalid ExpiredDocumentOutcome")
+	}
+	// MinBalanceToVerifyAccount
+	if c.Verification.MinBalanceToVerifyAccount < 20000000 {
+		log.Println("Warn: Verification MinBalanceToVerifyAccount is less than 20000000. This is not recommended and can lead to security issues. If you are sure about this, you can ignore this message.")
+	}
+	// DevMode
+	if c.Idenfy.DevMode {
+		log.Println("Warn: iDenfy DevMode is enabled. This is not intended for environments other than development. If you are sure about this, you can ignore this message.")
+	}
+	// Namespace
+	if c.Idenfy.Namespace != "" {
+		log.Println("Warn: iDenfy Namespace is set. This ideally should be empty. If you are sure about this, you can ignore this message.")
 	}
 	return nil
 }

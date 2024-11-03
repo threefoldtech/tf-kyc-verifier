@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"example.com/tfgrid-kyc-service/internal/clients/substrate"
-	"example.com/tfgrid-kyc-service/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 )
 
 func main() {

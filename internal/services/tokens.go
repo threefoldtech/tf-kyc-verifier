@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"time"
 
-	"example.com/tfgrid-kyc-service/internal/errors"
-	"example.com/tfgrid-kyc-service/internal/logger"
-	"example.com/tfgrid-kyc-service/internal/models"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID string) (*models.Token, bool, error) {
