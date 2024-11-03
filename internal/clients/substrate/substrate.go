@@ -2,7 +2,6 @@ package substrate
 
 import (
 	"fmt"
-	"math/big"
 	"strconv"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
@@ -31,21 +30,21 @@ func New(config SubstrateConfig, logger logger.Logger) (*Substrate, error) {
 	return c, nil
 }
 
-func (c *Substrate) GetAccountBalance(address string) (*big.Int, error) {
+func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
 	pubkeyBytes, err := tfchain.FromAddress(address)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode ss58 address: %w", err)
+		return 0, fmt.Errorf("failed to decode ss58 address: %w", err)
 	}
 	accountID := tfchain.AccountID(pubkeyBytes)
 	balance, err := c.api.GetBalance(accountID)
 	if err != nil {
 		if err.Error() == "account not found" {
-			return big.NewInt(0), nil
+			return 0, nil
 		}
-		return nil, fmt.Errorf("failed to get balance: %w", err)
+		return 0, fmt.Errorf("failed to get balance: %w", err)
 	}
 
-	return balance.Free.Int, nil
+	return balance.Free.Uint64(), nil
 }
 
 func (c *Substrate) GetAddressByTwinID(twinID string) (string, error) {

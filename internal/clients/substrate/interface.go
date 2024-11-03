@@ -1,7 +1,5 @@
 package substrate
 
-import "math/big"
-
 type SubstrateConfig interface {
 	GetWsProviderURL() string
 }
@@ -9,5 +7,5 @@ type SubstrateConfig interface {
 type SubstrateClient interface {
 	GetChainName() (string, error)
 	GetAddressByTwinID(twinID string) (string, error)
-	GetAccountBalance(address string) (*big.Int, error)
+	GetAccountBalance(address string) (uint64, error)
 }

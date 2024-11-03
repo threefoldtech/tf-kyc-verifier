@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
@@ -82,5 +81,5 @@ func (s *kycService) AccountHasRequiredBalance(ctx context.Context, address stri
 		s.logger.Error("Error getting account balance", logger.Fields{"address": address, "error": err})
 		return false, errors.NewExternalError("error getting account balance", err)
 	}
-	return balance.Cmp(big.NewInt(int64(s.config.MinBalanceToVerifyAccount))) >= 0, nil
+	return balance >= s.config.MinBalanceToVerifyAccount, nil
 }
