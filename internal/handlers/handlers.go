@@ -25,6 +25,15 @@ type Handler struct {
 	logger     logger.Logger
 }
 
+//	@title			TFGrid KYC API
+//	@version		0.2.0
+//	@description	This is a KYC service for TFGrid.
+//	@termsOfService	http://swagger.io/terms/
+
+// @contact.name	Codescalers Egypt
+// @contact.url	https://codescalers-egypt.com
+// @contact.email	info@codescalers.com
+// @BasePath		/
 func NewHandler(kycService services.KYCService, config *configs.Config, logger logger.Logger) *Handler {
 	return &Handler{kycService: kycService, config: config, logger: logger}
 }

@@ -9,15 +9,6 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/server"
 )
 
-//	@title			TFGrid KYC API
-//	@version		0.2.0
-//	@description	This is a KYC service for TFGrid.
-//	@termsOfService	http://swagger.io/terms/
-
-// @contact.name	Codescalers Egypt
-// @contact.url	https://codescalers-egypt.com
-// @contact.email	info@codescalers.com
-// @BasePath		/
 func main() {
 	config, err := configs.LoadConfig()
 	if err != nil {
