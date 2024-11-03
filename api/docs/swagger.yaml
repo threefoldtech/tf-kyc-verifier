@@ -151,7 +151,7 @@ info:
   description: This is a KYC service for TFGrid.
   termsOfService: http://swagger.io/terms/
   title: TFGrid KYC API
-  version: 0.3.0
+  version: 0.2.0
 paths:
   /api/v1/configs:
     get:
