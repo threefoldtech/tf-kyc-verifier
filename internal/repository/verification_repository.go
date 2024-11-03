@@ -16,10 +16,23 @@ type MongoVerificationRepository struct {
 	logger     logger.Logger
 }
 
-func NewMongoVerificationRepository(db *mongo.Database, logger logger.Logger) VerificationRepository {
-	return &MongoVerificationRepository{
+func NewMongoVerificationRepository(ctx context.Context, db *mongo.Database, logger logger.Logger) VerificationRepository {
+	// create index for clientId
+	repo := &MongoVerificationRepository{
 		collection: db.Collection("verifications"),
 		logger:     logger,
+	}
+	repo.createClientIdIndex(ctx)
+	return repo
+}
+
+func (r *MongoVerificationRepository) createClientIdIndex(ctx context.Context) {
+	_, err := r.collection.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "clientId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		r.logger.Error("Error creating clientId index", logger.Fields{"error": err})
 	}
 }
 

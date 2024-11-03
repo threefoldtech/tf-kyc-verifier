@@ -40,7 +40,7 @@ type Server struct {
 // New creates a new server instance with the given configuration and options
 func New(config *configs.Config, srvLogger logger.Logger) (*Server, error) {
 	// Create base context for initialization
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// Initialize server with base configuration
@@ -79,7 +79,7 @@ func (s *Server) initializeCore(ctx context.Context) error {
 	}
 
 	// Setup repositories
-	repos, err := s.setupRepositories(db)
+	repos, err := s.setupRepositories(ctx, db)
 	if err != nil {
 		return fmt.Errorf("failed to setup repositories: %w", err)
 	}
@@ -174,12 +174,12 @@ type repositories struct {
 	verification repository.VerificationRepository
 }
 
-func (s *Server) setupRepositories(db *mongo.Database) (*repositories, error) {
+func (s *Server) setupRepositories(ctx context.Context, db *mongo.Database) (*repositories, error) {
 	s.logger.Debug("Setting up repositories", nil)
 
 	return &repositories{
-		token:        repository.NewMongoTokenRepository(db, s.logger),
-		verification: repository.NewMongoVerificationRepository(db, s.logger),
+		token:        repository.NewMongoTokenRepository(ctx, db, s.logger),
+		verification: repository.NewMongoVerificationRepository(ctx, db, s.logger),
 	}, nil
 }
 

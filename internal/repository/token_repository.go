@@ -17,19 +17,17 @@ type MongoTokenRepository struct {
 	logger     logger.Logger
 }
 
-func NewMongoTokenRepository(db *mongo.Database, logger logger.Logger) TokenRepository {
+func NewMongoTokenRepository(ctx context.Context, db *mongo.Database, logger logger.Logger) TokenRepository {
 	repo := &MongoTokenRepository{
 		collection: db.Collection("tokens"),
 		logger:     logger,
 	}
-	repo.createTTLIndex()
+	repo.createTTLIndex(ctx)
+	repo.createClientIdIndex(ctx)
 	return repo
 }
 
-func (r *MongoTokenRepository) createTTLIndex() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
+func (r *MongoTokenRepository) createTTLIndex(ctx context.Context) {
 	_, err := r.collection.Indexes().CreateOne(
 		ctx,
 		mongo.IndexModel{
@@ -37,9 +35,18 @@ func (r *MongoTokenRepository) createTTLIndex() {
 			Options: options.Index().SetExpireAfterSeconds(0),
 		},
 	)
-
 	if err != nil {
 		r.logger.Error("Error creating TTL index", logger.Fields{"error": err})
+	}
+}
+
+func (r *MongoTokenRepository) createClientIdIndex(ctx context.Context) {
+	_, err := r.collection.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "clientId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		r.logger.Error("Error creating clientId index", logger.Fields{"error": err})
 	}
 }
 
