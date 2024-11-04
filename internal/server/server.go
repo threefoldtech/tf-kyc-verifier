@@ -268,7 +268,7 @@ func extractIPFromRequest(c *fiber.Ctx) string {
 	return "127.0.0.1"
 }
 
-func (s *Server) Start() {
+func (s *Server) Run() {
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)

@@ -32,5 +32,5 @@ func main() {
 	srvLogger.Info("Starting server on port:", logger.Fields{
 		"port": config.Server.Port,
 	})
-	server.Start()
+	server.Run()
 }
