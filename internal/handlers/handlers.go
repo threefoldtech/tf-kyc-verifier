@@ -62,12 +62,12 @@ func NewHandler(kycService services.KYCService, config *config.Config, logger lo
 // @Failure		409			{object}	responses.ErrorResponse
 // @Failure		500			{object}	responses.ErrorResponse
 // @Router			/api/v1/token [post]
-func (h *Handler) GetorCreateVerificationToken() fiber.Handler {
+func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get("X-Client-ID")
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
-		token, isNewToken, err := h.kycService.GetorCreateVerificationToken(ctx, clientID)
+		token, isNewToken, err := h.kycService.GetOrCreateVerificationToken(ctx, clientID)
 		if err != nil {
 			return HandleError(c, err)
 		}

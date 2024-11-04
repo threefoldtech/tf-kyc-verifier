@@ -7,7 +7,7 @@ import (
 )
 
 type KYCService interface {
-	GetorCreateVerificationToken(ctx context.Context, clientID string) (*models.Token, bool, error)
+	GetOrCreateVerificationToken(ctx context.Context, clientID string) (*models.Token, bool, error)
 	DeleteToken(ctx context.Context, clientID string, scanRef string) error
 	AccountHasRequiredBalance(ctx context.Context, address string) (bool, error)
 	GetVerificationData(ctx context.Context, clientID string) (*models.Verification, error)

@@ -219,7 +219,7 @@ func (s *Server) setupRoutes(kycService services.KYCService, mongoCl *mongo.Clie
 
 	// API routes
 	v1 := s.app.Group("/api/v1")
-	v1.Post("/token", middleware.AuthMiddleware(s.config.Challenge), handler.GetorCreateVerificationToken())
+	v1.Post("/token", middleware.AuthMiddleware(s.config.Challenge), handler.GetOrCreateVerificationToken())
 	v1.Get("/data", middleware.AuthMiddleware(s.config.Challenge), handler.GetVerificationData())
 	v1.Get("/status", handler.GetVerificationStatus())
 	v1.Get("/health", handler.HealthCheck(mongoCl))

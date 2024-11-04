@@ -10,7 +10,7 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
-func (s *kycService) GetorCreateVerificationToken(ctx context.Context, clientID string) (*models.Token, bool, error) {
+func (s *kycService) GetOrCreateVerificationToken(ctx context.Context, clientID string) (*models.Token, bool, error) {
 	isVerified, err := s.IsUserVerified(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error checking if user is verified", logger.Fields{"clientID": clientID, "error": err})
