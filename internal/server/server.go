@@ -191,7 +191,7 @@ func (s *Server) setupRepositories(ctx context.Context, db *mongo.Database) (*re
 	}, nil
 }
 
-func (s *Server) setupServices(repos *repositories) (services.KYCService, error) {
+func (s *Server) setupServices(repos *repositories) (*services.KYCService, error) {
 	s.logger.Debug("Setting up services", nil)
 
 	idenfyClient := idenfy.New(&s.config.Idenfy, s.logger)
@@ -214,7 +214,7 @@ func (s *Server) setupServices(repos *repositories) (services.KYCService, error)
 	return kycService, nil
 }
 
-func (s *Server) setupRoutes(kycService services.KYCService, mongoCl *mongo.Client) error {
+func (s *Server) setupRoutes(kycService *services.KYCService, mongoCl *mongo.Client) error {
 	s.logger.Debug("Setting up routes", nil)
 
 	handler := handlers.NewHandler(kycService, s.config, s.logger)

@@ -28,7 +28,7 @@ import (
 )
 
 type Handler struct {
-	kycService services.KYCService
+	kycService *services.KYCService
 	config     *config.Config
 	logger     logger.Logger
 }
@@ -42,7 +42,7 @@ type Handler struct {
 // @contact.url		https://threefold.io
 // @contact.email	info@threefold.io
 // @BasePath		/
-func NewHandler(kycService services.KYCService, config *config.Config, logger logger.Logger) *Handler {
+func NewHandler(kycService *services.KYCService, config *config.Config, logger logger.Logger) *Handler {
 	return &Handler{kycService: kycService, config: config, logger: logger}
 }
 
