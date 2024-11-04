@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -159,7 +160,7 @@ func (s *Server) setupMiddleware() error {
 
 	// Apply middleware
 	s.app.Use(middleware.NewLoggingMiddleware(s.logger))
-	s.app.Use(middleware.CORS())
+	s.app.Use(cors.New())
 	s.app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))

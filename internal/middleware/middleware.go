@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
@@ -15,11 +14,6 @@ import (
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 )
-
-// CORS returns a CORS middleware
-func CORS() fiber.Handler {
-	return cors.New()
-}
 
 // AuthMiddleware is a middleware that validates the authentication credentials
 func AuthMiddleware(config config.Challenge) fiber.Handler {
