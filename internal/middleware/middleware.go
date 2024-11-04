@@ -85,14 +85,14 @@ func VerifySubstrateSignature(address, signature, challenge string) error {
 	// Create a new ed25519 public key
 	pubkeyEd25519, err := ed25519.Scheme{}.FromPublicKey(pubkeyBytes)
 	if err != nil {
-		return errors.NewValidationError("error: can't create ed25519 public key", err)
+		return errors.NewValidationError("creating ed25519 public key", err)
 	}
 
 	if !pubkeyEd25519.Verify(challengeBytes, sig) {
 		// Create a new sr25519 public key
 		pubkeySr25519, err := sr25519.Scheme{}.FromPublicKey(pubkeyBytes)
 		if err != nil {
-			return errors.NewValidationError("error: can't create sr25519 public key", err)
+			return errors.NewValidationError("creating sr25519 public key", err)
 		}
 		if !pubkeySr25519.Verify(challengeBytes, sig) {
 			return errors.NewAuthorizationError("bad signature: signature does not match", nil)

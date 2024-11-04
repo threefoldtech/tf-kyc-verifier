@@ -68,7 +68,7 @@ func New(config *config.Config, srvLogger logger.Logger) (*Server, error) {
 
 	// Initialize core components
 	if err := server.initializeCore(ctx); err != nil {
-		return nil, fmt.Errorf("failed to initialize core components: %w", err)
+		return nil, fmt.Errorf("initializing core components: %w", err)
 	}
 
 	return server, nil
@@ -78,30 +78,30 @@ func New(config *config.Config, srvLogger logger.Logger) (*Server, error) {
 func (s *Server) initializeCore(ctx context.Context) error {
 	// Setup middleware
 	if err := s.setupMiddleware(); err != nil {
-		return fmt.Errorf("failed to setup middleware: %w", err)
+		return fmt.Errorf("setting up middleware: %w", err)
 	}
 
 	// Setup database
 	dbClient, db, err := s.setupDatabase(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to setup database: %w", err)
+		return fmt.Errorf("setting up database: %w", err)
 	}
 
 	// Setup repositories
 	repos, err := s.setupRepositories(ctx, db)
 	if err != nil {
-		return fmt.Errorf("failed to setup repositories: %w", err)
+		return fmt.Errorf("setting up repositories: %w", err)
 	}
 
 	// Setup services
 	service, err := s.setupServices(repos)
 	if err != nil {
-		return fmt.Errorf("failed to setup services: %w", err)
+		return fmt.Errorf("setting up services: %w", err)
 	}
 
 	// Setup routes
 	if err := s.setupRoutes(service, dbClient); err != nil {
-		return fmt.Errorf("failed to setup routes: %w", err)
+		return fmt.Errorf("setting up routes: %w", err)
 	}
 
 	return nil
@@ -172,7 +172,7 @@ func (s *Server) setupDatabase(ctx context.Context) (*mongo.Client, *mongo.Datab
 
 	client, err := repository.ConnectToMongoDB(ctx, s.config.MongoDB.URI)
 	if err != nil {
-		return nil, nil, errors.Join(fmt.Errorf("failed to connect to MongoDB: %w", err))
+		return nil, nil, errors.Join(fmt.Errorf("setting up database: %w", err))
 	}
 
 	return client, client.Database(s.config.MongoDB.DatabaseName), nil
@@ -199,7 +199,7 @@ func (s *Server) setupServices(repos *repositories) (services.KYCService, error)
 
 	substrateClient, err := substrate.New(&s.config.TFChain, s.logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize substrate client: %w", err)
+		return nil, fmt.Errorf("initializing substrate client: %w", err)
 	}
 
 	return services.NewKYCService(

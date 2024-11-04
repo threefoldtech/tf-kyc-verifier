@@ -59,7 +59,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	jsonBody, err := json.Marshal(RequestBody)
 	if err != nil {
-		return models.Token{}, fmt.Errorf("error marshaling request body: %w", err)
+		return models.Token{}, fmt.Errorf("marshaling request body: %w", err)
 	}
 	req.SetBody(jsonBody)
 	// Set deadline from context
@@ -75,7 +75,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	})
 	err = c.client.Do(req, resp)
 	if err != nil {
-		return models.Token{}, fmt.Errorf("error sending request: %w", err)
+		return models.Token{}, fmt.Errorf("sending token request to iDenfy: %w", err)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
@@ -83,7 +83,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 			"status": resp.StatusCode(),
 			"error":  string(resp.Body()),
 		})
-		return models.Token{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+		return models.Token{}, fmt.Errorf("unexpected status code from iDenfy: %d", resp.StatusCode())
 	}
 	c.logger.Debug("Received response from iDenfy", logger.Fields{
 		"response": string(resp.Body()),
@@ -91,7 +91,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	var result models.Token
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {
-		return models.Token{}, fmt.Errorf("error decoding response: %w", err)
+		return models.Token{}, fmt.Errorf("decoding token response from iDenfy: %w", err)
 	}
 
 	return result, nil
@@ -99,9 +99,6 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 // verify signature of the callback
 func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHeader string) error {
-	if len(c.config.GetCallbackSignKey()) < 1 {
-		return errors.New("callback was received but no signature key was provided")
-	}
 	sig, err := hex.DecodeString(sigHeader)
 	if err != nil {
 		return err

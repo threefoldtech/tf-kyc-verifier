@@ -9,9 +9,6 @@ import (
 	"strconv"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
-
-	// use tfchain go client
-
 	tfchain "github.com/threefoldtech/tfchain/clients/tfchain-client-go"
 )
 
@@ -34,7 +31,7 @@ func New(config WsProviderURLGetter, logger logger.Logger) (*Substrate, error) {
 	mgr := tfchain.NewManager(config.GetWsProviderURL())
 	api, err := mgr.Substrate()
 	if err != nil {
-		return nil, fmt.Errorf("substrate connection error: failed to initialize Substrate client: %w", err)
+		return nil, fmt.Errorf("initializing Substrate client: %w", err)
 	}
 
 	c := &Substrate{
@@ -47,7 +44,7 @@ func New(config WsProviderURLGetter, logger logger.Logger) (*Substrate, error) {
 func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
 	pubkeyBytes, err := tfchain.FromAddress(address)
 	if err != nil {
-		return 0, fmt.Errorf("failed to decode ss58 address: %w", err)
+		return 0, fmt.Errorf("decoding ss58 address: %w", err)
 	}
 	accountID := tfchain.AccountID(pubkeyBytes)
 	balance, err := c.api.GetBalance(accountID)
@@ -55,7 +52,7 @@ func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
 		if err.Error() == "account not found" {
 			return 0, nil
 		}
-		return 0, fmt.Errorf("failed to get balance: %w", err)
+		return 0, fmt.Errorf("getting account balance: %w", err)
 	}
 
 	return balance.Free.Uint64(), nil
@@ -64,11 +61,11 @@ func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
 func (c *Substrate) GetAddressByTwinID(twinID string) (string, error) {
 	twinIDUint32, err := strconv.ParseUint(twinID, 10, 32)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse twin ID: %w", err)
+		return "", fmt.Errorf("parsing twin ID: %w", err)
 	}
 	twin, err := c.api.GetTwin(uint32(twinIDUint32))
 	if err != nil {
-		return "", fmt.Errorf("failed to get twin: %w", err)
+		return "", fmt.Errorf("getting twin from tfchain: %w", err)
 	}
 	return twin.Account.String(), nil
 }
@@ -77,11 +74,11 @@ func (c *Substrate) GetAddressByTwinID(twinID string) (string, error) {
 func (c *Substrate) GetChainName() (string, error) {
 	api, _, err := c.api.GetClient()
 	if err != nil {
-		return "", fmt.Errorf("failed to get substrate client: %w", err)
+		return "", fmt.Errorf("getting substrate inner client: %w", err)
 	}
 	chain, err := api.RPC.System.Chain()
 	if err != nil {
-		return "", fmt.Errorf("failed to get chain: %w", err)
+		return "", fmt.Errorf("getting chain name: %w", err)
 	}
 	return string(chain), nil
 }

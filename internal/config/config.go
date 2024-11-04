@@ -104,7 +104,7 @@ func LoadConfigFromEnv() (*Config, error) {
 	cfg := &Config{}
 	err := cleanenv.ReadEnv(cfg)
 	if err != nil {
-		return nil, errors.Join(errors.New("error loading config"), err)
+		return nil, errors.Join(errors.New("loading config"), err)
 	}
 	// cfg.Validate()
 	return cfg, nil
@@ -124,7 +124,7 @@ func (c Config) GetPublicConfig() Config {
 func (c *Config) Validate() error {
 	// iDenfy base URL should be https://ivs.idenfy.com. This is the only supported base URL for now.
 	if c.Idenfy.BaseURL != "https://ivs.idenfy.com" {
-		return errors.New("invalid iDenfy base URL. It should be https://ivs.idenfy.com")
+		return errors.New("invalid iDenfy base URL. it should be https://ivs.idenfy.com")
 	}
 	// CallbackUrl should be valid URL
 	parsedCallbackUrl, err := url.ParseRequestURI(c.Idenfy.CallbackUrl)
@@ -133,7 +133,7 @@ func (c *Config) Validate() error {
 	}
 	// CallbackSignKey should not be empty
 	if len(c.Idenfy.CallbackSignKey) < 16 {
-		return errors.New("CallbackSignKey should be at least 16 characters long")
+		return errors.New("invalid callbackSignKey. it should be at least 16 characters long")
 	}
 	// WsProviderURL should be valid URL and start with wss://
 	if u, err := url.ParseRequestURI(c.TFChain.WsProviderURL); err != nil || u.Scheme != "wss" {
@@ -149,11 +149,11 @@ func (c *Config) Validate() error {
 	}
 	// SuspiciousVerificationOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.SuspiciousVerificationOutcome) {
-		return errors.New("invalid SuspiciousVerificationOutcome")
+		return errors.New("invalid SuspiciousVerificationOutcome. should be either APPROVED or REJECTED")
 	}
 	// ExpiredDocumentOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.ExpiredDocumentOutcome) {
-		return errors.New("invalid ExpiredDocumentOutcome")
+		return errors.New("invalid ExpiredDocumentOutcome. should be either APPROVED or REJECTED")
 	}
 	// MinBalanceToVerifyAccount
 	if c.Verification.MinBalanceToVerifyAccount < 20000000 {

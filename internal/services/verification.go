@@ -14,7 +14,7 @@ func (s *kycService) GetVerificationData(ctx context.Context, clientID string) (
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error getting verification from database", logger.Fields{"clientID": clientID, "error": err})
-		return nil, errors.NewInternalError("error getting verification from database", err)
+		return nil, errors.NewInternalError("getting verification from database", err)
 	}
 	return verification, nil
 }
@@ -34,7 +34,7 @@ func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string)
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error getting verification from database", logger.Fields{"clientID": clientID, "error": err})
-		return nil, errors.NewInternalError("error getting verification from database", err)
+		return nil, errors.NewInternalError("getting verification from database", err)
 	}
 	var outcome models.Outcome
 	if verification != nil {
@@ -59,7 +59,7 @@ func (s *kycService) GetVerificationStatusByTwinID(ctx context.Context, twinID s
 	address, err := s.substrate.GetAddressByTwinID(twinID)
 	if err != nil {
 		s.logger.Error("Error getting address from twinID", logger.Fields{"twinID": twinID, "error": err})
-		return nil, errors.NewExternalError("error looking up twinID address from TFChain", err)
+		return nil, errors.NewExternalError("looking up twinID address from TFChain", err)
 	}
 	return s.GetVerificationStatus(ctx, address)
 }
@@ -68,7 +68,7 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 	err := s.idenfy.VerifyCallbackSignature(ctx, body, sigHeader)
 	if err != nil {
 		s.logger.Error("Error verifying callback signature", logger.Fields{"sigHeader": sigHeader, "error": err})
-		return errors.NewAuthorizationError("error verifying callback signature", err)
+		return errors.NewAuthorizationError("verifying callback signature", err)
 	}
 	clientIDParts := strings.Split(result.ClientID, ":")
 	if len(clientIDParts) < 2 {
@@ -93,7 +93,7 @@ func (s *kycService) ProcessVerificationResult(ctx context.Context, body []byte,
 		err = s.verificationRepo.SaveVerification(ctx, &result)
 		if err != nil {
 			s.logger.Error("Error saving verification to database", logger.Fields{"clientID": result.ClientID, "scanRef": result.IdenfyRef, "error": err})
-			return errors.NewInternalError("error saving verification to database", err)
+			return errors.NewInternalError("saving verification to database", err)
 		}
 	}
 	s.logger.Debug("Verification result processed successfully", logger.Fields{"result": result})
@@ -108,7 +108,7 @@ func (s *kycService) IsUserVerified(ctx context.Context, clientID string) (bool,
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error getting verification from database", logger.Fields{"clientID": clientID, "error": err})
-		return false, errors.NewInternalError("error getting verification from database", err)
+		return false, errors.NewInternalError("getting verification from database", err)
 	}
 	if verification == nil {
 		return false, nil
