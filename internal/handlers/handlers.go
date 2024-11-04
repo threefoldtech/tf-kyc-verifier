@@ -1,3 +1,11 @@
+/*
+Package handlers contains the handlers for the API.
+This layer is responsible for handling the requests and responses, in more details:
+- validating the requests
+- formatting the responses
+- handling the errors
+- delegating the requests to the services
+*/
 package handlers
 
 import (

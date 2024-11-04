@@ -1,3 +1,7 @@
+/*
+Package substrate contains the Substrate client for the application.
+This layer is responsible for interacting with the Substrate API. It wraps the tfchain go client and provide basic operations.
+*/
 package substrate
 
 import (

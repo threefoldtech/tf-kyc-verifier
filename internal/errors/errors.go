@@ -1,3 +1,7 @@
+/*
+Package errors contains custom error types and constructors for the application.
+This layer is responsible for defining the error types and constructors for the application.
+*/
 package errors
 
 import "fmt"

@@ -1,3 +1,12 @@
+/*
+Package server contains the HTTP server for the application.
+This layer is responsible for initializing the server and its dependencies. in more details:
+- setting up the middleware
+- setting up the database
+- setting up the repositories
+- setting up the services
+- setting up the routes
+*/
 package server
 
 import (

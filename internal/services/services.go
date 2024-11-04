@@ -1,3 +1,7 @@
+/*
+Package services contains the services for the application.
+This layer is responsible for handling the business logic.
+*/
 package services
 
 import (

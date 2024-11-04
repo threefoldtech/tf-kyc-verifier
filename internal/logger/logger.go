@@ -1,3 +1,8 @@
+/*
+Package logger contains a Logger Wrapper to enable support for multiple logging libraries.
+This is a layer between the application code and the underlying logging library.
+It provides a simplified API that abstracts away the complexity of different logging libraries, making it easier to switch between them or add new ones.
+*/
 package logger
 
 import (

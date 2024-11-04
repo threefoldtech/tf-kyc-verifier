@@ -121,6 +121,7 @@ help:
 	@echo "  make deps-verify  : Verify dependencies"
 	@echo "  make security-check: Check for security vulnerabilities"
 	@echo "  make fmt          : Format code"
+	@echo "  make install-tools: Install development tools"
 
 # Install development tools
 .PHONY: install-tools

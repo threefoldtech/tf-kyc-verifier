@@ -1,3 +1,9 @@
+/*
+Package idenfy contains the iDenfy client for the application.
+This layer is responsible for interacting with the iDenfy API. the main operations are:
+- creating a verification session
+- verifying the callback signature
+*/
 package idenfy
 
 import (
