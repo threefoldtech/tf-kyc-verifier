@@ -19,7 +19,7 @@ func main() {
 		panic(err)
 	}
 
-	address, err := substrateClient.GetAddressByTwinID("41")
+	address, err := substrateClient.GetAddressByTwinID(41)
 	if err != nil {
 		panic(err)
 	}
