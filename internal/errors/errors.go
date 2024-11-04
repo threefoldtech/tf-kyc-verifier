@@ -22,71 +22,71 @@ const (
 
 // ServiceError represents a service-level error
 type ServiceError struct {
-	Type    ErrorType
-	Message string
-	Err     error
+	Type ErrorType
+	Msg  string
+	Err  error
 }
 
 func (e *ServiceError) Error() string {
 	if e.Err != nil {
-		return fmt.Sprintf("%s: %s (%v)", e.Type, e.Message, e.Err)
+		return fmt.Sprintf("%s: %s (%v)", e.Type, e.Msg, e.Err)
 	}
-	return fmt.Sprintf("%s: %s", e.Type, e.Message)
+	return fmt.Sprintf("%s: %s", e.Type, e.Msg)
 }
 
 // Error constructors
-func NewValidationError(message string, err error) *ServiceError {
+func NewValidationError(msg string, err error) *ServiceError {
 	return &ServiceError{
-		Type:    ErrorTypeValidation,
-		Message: message,
-		Err:     err,
+		Type: ErrorTypeValidation,
+		Msg:  msg,
+		Err:  err,
 	}
 }
 
-func NewAuthorizationError(message string, err error) *ServiceError {
+func NewAuthorizationError(msg string, err error) *ServiceError {
 	return &ServiceError{
-		Type:    ErrorTypeAuthorization,
-		Message: message,
-		Err:     err,
+		Type: ErrorTypeAuthorization,
+		Msg:  msg,
+		Err:  err,
 	}
 }
 
-func NewNotFoundError(message string, err error) *ServiceError {
+func NewNotFoundError(msg string, err error) *ServiceError {
 	return &ServiceError{
-		Type:    ErrorTypeNotFound,
-		Message: message,
-		Err:     err,
+		Type: ErrorTypeNotFound,
+		Msg:  msg,
+		Err:  err,
 	}
 }
 
-func NewConflictError(message string, err error) *ServiceError {
+func NewConflictError(msg string, err error) *ServiceError {
 	return &ServiceError{
-		Type:    ErrorTypeConflict,
-		Message: message,
-		Err:     err,
+		Type: ErrorTypeConflict,
+		Msg:  msg,
+		Err:  err,
 	}
 }
 
-func NewInternalError(message string, err error) *ServiceError {
+func NewInternalError(msg string, err error) *ServiceError {
 	return &ServiceError{
-		Type:    ErrorTypeInternal,
-		Message: message,
-		Err:     err,
+		Type: ErrorTypeInternal,
+		Msg:  msg,
+		Err:  err,
 	}
 }
 
-func NewExternalError(message string, err error) *ServiceError {
+func NewExternalError(msg string, err error) *ServiceError {
 	return &ServiceError{
-		Type:    ErrorTypeExternal,
-		Message: message,
-		Err:     err,
+		Type: ErrorTypeExternal,
+		Msg:  msg,
+		Err:  err,
 	}
 }
 
-func NewNotSufficientBalanceError(message string, err error) *ServiceError {
+func NewNotSufficientBalanceError(msg string, err error) *ServiceError {
 	return &ServiceError{
-		Type:    ErrorTypeNotSufficientBalance,
-		Message: message,
-		Err:     err,
+		Type: ErrorTypeNotSufficientBalance,
+		Msg:  msg,
+		Err:  err,
 	}
 }

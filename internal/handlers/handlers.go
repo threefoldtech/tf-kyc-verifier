@@ -277,7 +277,7 @@ func HandleError(c *fiber.Ctx, err error) error {
 func HandleServiceError(c *fiber.Ctx, err *errors.ServiceError) error {
 	statusCode := getStatusCode(err.Type)
 	return c.Status(statusCode).JSON(fiber.Map{
-		"error": err.Message,
+		"error": err.Msg,
 	})
 }
 
