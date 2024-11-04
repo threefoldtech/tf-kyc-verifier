@@ -6,7 +6,6 @@ package substrate
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	tfchain "github.com/threefoldtech/tfchain/clients/tfchain-client-go"
@@ -18,7 +17,7 @@ type WsProviderURLGetter interface {
 
 type SubstrateClient interface {
 	GetChainName() (string, error)
-	GetAddressByTwinID(twinID string) (string, error)
+	GetAddressByTwinID(twinID uint32) (string, error)
 	GetAccountBalance(address string) (uint64, error)
 }
 
@@ -34,11 +33,10 @@ func New(config WsProviderURLGetter, logger logger.Logger) (*Substrate, error) {
 		return nil, fmt.Errorf("initializing Substrate client: %w", err)
 	}
 
-	c := &Substrate{
+	return &Substrate{
 		api:    api,
 		logger: logger,
-	}
-	return c, nil
+	}, nil
 }
 
 func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
@@ -58,12 +56,8 @@ func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
 	return balance.Free.Uint64(), nil
 }
 
-func (c *Substrate) GetAddressByTwinID(twinID string) (string, error) {
-	twinIDUint32, err := strconv.ParseUint(twinID, 10, 32)
-	if err != nil {
-		return "", fmt.Errorf("parsing twin ID: %w", err)
-	}
-	twin, err := c.api.GetTwin(uint32(twinIDUint32))
+func (c *Substrate) GetAddressByTwinID(twinID uint32) (string, error) {
+	twin, err := c.api.GetTwin(twinID)
 	if err != nil {
 		return "", fmt.Errorf("getting twin from tfchain: %w", err)
 	}

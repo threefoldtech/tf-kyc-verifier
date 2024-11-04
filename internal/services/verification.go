@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
@@ -56,7 +57,12 @@ func (s *kycService) GetVerificationStatus(ctx context.Context, clientID string)
 
 func (s *kycService) GetVerificationStatusByTwinID(ctx context.Context, twinID string) (*models.VerificationOutcome, error) {
 	// get the address from the twinID
-	address, err := s.substrate.GetAddressByTwinID(twinID)
+	twinIDUint64, err := strconv.ParseUint(twinID, 10, 32)
+	if err != nil {
+		s.logger.Error("Error parsing twinID", logger.Fields{"twinID": twinID, "error": err})
+		return nil, errors.NewInternalError("parsing twinID", err)
+	}
+	address, err := s.substrate.GetAddressByTwinID(uint32(twinIDUint64))
 	if err != nil {
 		s.logger.Error("Error getting address from twinID", logger.Fields{"twinID": twinID, "error": err})
 		return nil, errors.NewExternalError("looking up twinID address from TFChain", err)
