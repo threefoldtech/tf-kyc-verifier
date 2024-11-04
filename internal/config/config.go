@@ -100,7 +100,7 @@ type Challenge struct {
 	Domain string `env:"CHALLENGE_DOMAIN" env-required:"true"`
 }
 
-func LoadConfig() (*Config, error) {
+func LoadConfigFromEnv() (*Config, error) {
 	cfg := &Config{}
 	err := cleanenv.ReadEnv(cfg)
 	if err != nil {
