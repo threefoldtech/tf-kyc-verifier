@@ -2,7 +2,7 @@ package logger
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -22,7 +22,7 @@ func NewZapLogger(debug bool, ctx context.Context) (*ZapLogger, error) {
 	zapConfig.DisableCaller = true
 	zapLog, err := zapConfig.Build()
 	if err != nil {
-		return nil, errors.Join(errors.New("building zap logger from the config"), err)
+		return nil, fmt.Errorf("building zap logger from the config: %w", err)
 	}
 
 	return &ZapLogger{logger: zapLog, ctx: ctx}, nil

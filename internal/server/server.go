@@ -11,7 +11,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -172,7 +171,7 @@ func (s *Server) setupDatabase(ctx context.Context) (*mongo.Client, *mongo.Datab
 
 	client, err := repository.ConnectToMongoDB(ctx, s.config.MongoDB.URI)
 	if err != nil {
-		return nil, nil, errors.Join(fmt.Errorf("setting up database: %w", err))
+		return nil, nil, fmt.Errorf("setting up database: %w", err)
 	}
 
 	return client, client.Database(s.config.MongoDB.DatabaseName), nil
@@ -268,7 +267,7 @@ func extractIPFromRequest(c *fiber.Ctx) string {
 	return "127.0.0.1"
 }
 
-func (s *Server) Run() {
+func (s *Server) Run() error {
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -284,6 +283,7 @@ func (s *Server) Run() {
 
 	// Start server
 	if err := s.app.Listen(":" + s.config.Server.Port); err != nil && err != http.ErrServerClosed {
-		s.logger.Fatal("Server startup failed", logger.Fields{"error": err})
+		return fmt.Errorf("starting server: %w", err)
 	}
+	return nil
 }

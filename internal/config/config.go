@@ -6,6 +6,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/url"
 	"slices"
@@ -104,7 +105,7 @@ func LoadConfigFromEnv() (*Config, error) {
 	cfg := &Config{}
 	err := cleanenv.ReadEnv(cfg)
 	if err != nil {
-		return nil, errors.Join(errors.New("loading config"), err)
+		return nil, fmt.Errorf("loading config: %w", err)
 	}
 	// cfg.Validate()
 	return cfg, nil
