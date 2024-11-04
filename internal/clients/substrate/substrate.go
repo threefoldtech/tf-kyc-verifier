@@ -15,12 +15,22 @@ import (
 	tfchain "github.com/threefoldtech/tfchain/clients/tfchain-client-go"
 )
 
+type WsProviderURLGetter interface {
+	GetWsProviderURL() string
+}
+
+type SubstrateClient interface {
+	GetChainName() (string, error)
+	GetAddressByTwinID(twinID string) (string, error)
+	GetAccountBalance(address string) (uint64, error)
+}
+
 type Substrate struct {
 	api    *tfchain.Substrate
 	logger logger.Logger
 }
 
-func New(config SubstrateConfig, logger logger.Logger) (*Substrate, error) {
+func New(config WsProviderURLGetter, logger logger.Logger) (*Substrate, error) {
 	mgr := tfchain.NewManager(config.GetWsProviderURL())
 	api, err := mgr.Substrate()
 	if err != nil {
