@@ -5,9 +5,9 @@
         "title": "TFGrid KYC API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
-            "name": "Codescalers Egypt",
-            "url": "https://codescalers-egypt.com",
-            "email": "info@codescalers.com"
+            "name": "threefold.io",
+            "url": "https://threefold.io",
+            "email": "info@threefold.io"
         },
         "version": "0.2.0"
     },

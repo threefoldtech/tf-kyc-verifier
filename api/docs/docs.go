@@ -11,9 +11,9 @@ const docTemplate = `{
         "title": "{{.Title}}",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
-            "name": "Codescalers Egypt",
-            "url": "https://codescalers-egypt.com",
-            "email": "info@codescalers.com"
+            "name": "threefold.io",
+            "url": "https://threefold.io",
+            "email": "info@threefold.io"
         },
         "version": "{{.Version}}"
     },

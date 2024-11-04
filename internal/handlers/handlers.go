@@ -38,9 +38,9 @@ type Handler struct {
 //	@description	This is a KYC service for TFGrid.
 //	@termsOfService	http://swagger.io/terms/
 
-// @contact.name	Codescalers Egypt
-// @contact.url	https://codescalers-egypt.com
-// @contact.email	info@codescalers.com
+// @contact.name	threefold.io
+// @contact.url		https://threefold.io
+// @contact.email	info@threefold.io
 // @BasePath		/
 func NewHandler(kycService services.KYCService, config *config.Config, logger logger.Logger) *Handler {
 	return &Handler{kycService: kycService, config: config, logger: logger}
