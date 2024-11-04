@@ -38,6 +38,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const (
+	SERVER_STARTUP_TIMEOUT  = 10 * time.Second
+	REQUEST_READ_TIMEOUT    = 15 * time.Second
+	RESPONSE_WRITE_TIMEOUT  = 15 * time.Second
+	CONNECTION_IDLE_TIMEOUT = 20 * time.Second
+	REQUETS_BODY_LIMIT      = 512 * 1024 // 512KB
+	LOOPBACK                = "127.0.0.1"
+)
+
 // Server represents the HTTP server and its dependencies
 type Server struct {
 	app    *fiber.App
@@ -48,7 +57,7 @@ type Server struct {
 // New creates a new server instance with the given configuration and options
 func New(config *config.Config, srvLogger logger.Logger) (*Server, error) {
 	// Create base context for initialization
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), SERVER_STARTUP_TIMEOUT)
 	defer cancel()
 
 	// Initialize server with base configuration
@@ -59,10 +68,10 @@ func New(config *config.Config, srvLogger logger.Logger) (*Server, error) {
 
 	// Initialize Fiber app with base configuration
 	server.app = fiber.New(fiber.Config{
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  20 * time.Second,
-		BodyLimit:    512 * 1024, // 512KB
+		ReadTimeout:  REQUEST_READ_TIMEOUT,
+		WriteTimeout: RESPONSE_WRITE_TIMEOUT,
+		IdleTimeout:  CONNECTION_IDLE_TIMEOUT,
+		BodyLimit:    REQUETS_BODY_LIMIT,
 	})
 
 	// Initialize core components
@@ -133,7 +142,7 @@ func (s *Server) setupMiddleware() error {
 			return extractIPFromRequest(c)
 		},
 		Next: func(c *fiber.Ctx) bool {
-			return extractIPFromRequest(c) == "127.0.0.1"
+			return extractIPFromRequest(c) == LOOPBACK
 		},
 		SkipFailedRequests: true,
 	}
@@ -267,7 +276,7 @@ func extractIPFromRequest(c *fiber.Ctx) string {
 		}
 	}
 	// If we still have a private IP, return a default value that will be skipped by the limiter
-	return "127.0.0.1"
+	return LOOPBACK
 }
 
 func (s *Server) Run() error {
