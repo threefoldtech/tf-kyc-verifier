@@ -178,7 +178,7 @@ func (s *Server) setupMiddleware() error {
 func (s *Server) setupDatabase(ctx context.Context) (*mongo.Client, *mongo.Database, error) {
 	s.logger.Debug("Connecting to database", nil)
 
-	client, err := repository.ConnectToMongoDB(ctx, s.config.MongoDB.URI)
+	client, err := repository.NewMongoClient(ctx, s.config.MongoDB.URI)
 	if err != nil {
 		return nil, nil, fmt.Errorf("setting up database: %w", err)
 	}

@@ -67,13 +67,13 @@ func fromHex(hex string) ([]byte, bool) {
 }
 
 func VerifySubstrateSignature(address, signature, challenge string) error {
-	challengeBytes, success := fromHex(challenge)
-	if !success {
+	challengeBytes, ok := fromHex(challenge)
+	if !ok {
 		return errors.NewValidationError("malformed challenge: failed to decode hex-encoded challenge", nil)
 	}
 	// hex to string
-	sig, success := fromHex(signature)
-	if !success {
+	sig, ok := fromHex(signature)
+	if !ok {
 		return errors.NewValidationError("malformed signature: failed to decode hex-encoded signature", nil)
 	}
 	// Convert address to public key
@@ -104,8 +104,8 @@ func VerifySubstrateSignature(address, signature, challenge string) error {
 
 func ValidateChallenge(address, signature, challenge, expectedDomain string, challengeWindow int64) error {
 	// Parse and validate the challenge
-	challengeBytes, success := fromHex(challenge)
-	if !success {
+	challengeBytes, ok := fromHex(challenge)
+	if !ok {
 		return errors.NewValidationError("malformed challenge: failed to decode hex-encoded challenge", nil)
 	}
 	parts := strings.Split(string(challengeBytes), ":")
