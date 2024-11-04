@@ -113,16 +113,22 @@ First make sure to create and set the environment variables in the `.app.env`, `
 Examples can be found in `.app.env.example`, `.db.env.example`.
 In beta releases, we include the mongo-express container, but you can opt to disable it.
 
-To start only the server and MongoDB using Docker Compose:
-
-```bash
-docker compose up -d db api
-```
-
-For a full setup with mongo-express, make sure to create and set the environment variables in the `.express.env` file as well, then run:
+To start only the core services (API and MongoDB) using Docker Compose:
 
 ```bash
 docker compose up -d
+```
+
+To include mongo-express for development, make sure to create and set the environment variables in the `.express.env` file as well, then run:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+To start only mongo-express if core services are already running, run:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d mongo-express
 ```
 
 ### Running Locally
