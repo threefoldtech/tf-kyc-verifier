@@ -127,7 +127,7 @@ func (s *Server) setupMiddleware() error {
 
 	// Configure rate limiters
 	ipLimiterConfig := limiter.Config{
-		Max:        s.config.IPLimiter.MaxTokenRequests,
+		Max:        int(s.config.IPLimiter.MaxTokenRequests),
 		Expiration: time.Duration(s.config.IPLimiter.TokenExpiration) * time.Minute,
 		Storage:    ipLimiterStore,
 		KeyGenerator: func(c *fiber.Ctx) string {
@@ -140,7 +140,7 @@ func (s *Server) setupMiddleware() error {
 	}
 
 	idLimiterConfig := limiter.Config{
-		Max:        s.config.IDLimiter.MaxTokenRequests,
+		Max:        int(s.config.IDLimiter.MaxTokenRequests),
 		Expiration: time.Duration(s.config.IDLimiter.TokenExpiration) * time.Minute,
 		Storage:    idLimiterStore,
 		KeyGenerator: func(c *fiber.Ctx) string {
