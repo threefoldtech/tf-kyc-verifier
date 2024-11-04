@@ -252,13 +252,10 @@ func extractIPFromRequest(c *fiber.Ctx) string {
 	// Check for X-Forwarded-For header
 	if ip := c.Get("X-Forwarded-For"); ip != "" {
 		ips := strings.Split(ip, ",")
-		if len(ips) > 0 {
-
-			for _, ip := range ips {
-				// return the first non-private ip in the list
-				if net.ParseIP(strings.TrimSpace(ip)) != nil && !net.ParseIP(strings.TrimSpace(ip)).IsPrivate() {
-					return strings.TrimSpace(ip)
-				}
+		for _, ip := range ips {
+			// return the first non-private ip in the list
+			if net.ParseIP(strings.TrimSpace(ip)) != nil && !net.ParseIP(strings.TrimSpace(ip)).IsPrivate() {
+				return strings.TrimSpace(ip)
 			}
 		}
 	}
