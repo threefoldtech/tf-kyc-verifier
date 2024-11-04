@@ -9,7 +9,7 @@ import (
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/idenfy"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/repository"
@@ -22,17 +22,17 @@ type kycService struct {
 	tokenRepo        repository.TokenRepository
 	idenfy           idenfy.IdenfyClient
 	substrate        substrate.SubstrateClient
-	config           *configs.Verification
+	config           *config.Verification
 	logger           logger.Logger
 	IdenfySuffix     string
 }
 
-func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy idenfy.IdenfyClient, substrateClient substrate.SubstrateClient, config *configs.Config, logger logger.Logger) KYCService {
+func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy idenfy.IdenfyClient, substrateClient substrate.SubstrateClient, config *config.Config, logger logger.Logger) KYCService {
 	idenfySuffix := GetIdenfySuffix(substrateClient, config)
 	return &kycService{verificationRepo: verificationRepo, tokenRepo: tokenRepo, idenfy: idenfy, substrate: substrateClient, config: &config.Verification, logger: logger, IdenfySuffix: idenfySuffix}
 }
 
-func GetIdenfySuffix(substrateClient substrate.SubstrateClient, config *configs.Config) string {
+func GetIdenfySuffix(substrateClient substrate.SubstrateClient, config *config.Config) string {
 	idenfySuffix := GetChainNetworkName(substrateClient)
 	if config.Idenfy.Namespace != "" {
 		idenfySuffix = config.Idenfy.Namespace + ":" + idenfySuffix

@@ -19,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/build"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
@@ -29,7 +29,7 @@ import (
 
 type Handler struct {
 	kycService services.KYCService
-	config     *configs.Config
+	config     *config.Config
 	logger     logger.Logger
 }
 
@@ -42,7 +42,7 @@ type Handler struct {
 // @contact.url	https://codescalers-egypt.com
 // @contact.email	info@codescalers.com
 // @BasePath		/
-func NewHandler(kycService services.KYCService, config *configs.Config, logger logger.Logger) *Handler {
+func NewHandler(kycService services.KYCService, config *config.Config, logger logger.Logger) *Handler {
 	return &Handler{kycService: kycService, config: config, logger: logger}
 }
 

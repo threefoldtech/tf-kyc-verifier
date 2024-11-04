@@ -8,16 +8,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	expectedSig := "249d9a838e9b981935324b02367ca72552aa430fc766f45f77fab7a81f9f3b9d"
-	logger.Init(configs.Log{})
+	logger.Init(config.Log{})
 	log := logger.GetLogger()
-	client := New(&configs.Idenfy{
+	client := New(&config.Idenfy{
 		CallbackSignKey: "TestingKey",
 	}, log)
 

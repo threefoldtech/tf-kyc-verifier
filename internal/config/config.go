@@ -1,8 +1,8 @@
 /*
-Package configs contains the configuration for the application.
+Package config contains the configuration for the application.
 This layer is responsible for loading the configuration from the environment variables and validating it.
 */
-package configs
+package config
 
 import (
 	"errors"

@@ -30,7 +30,7 @@ import (
 	_ "github.com/threefoldtech/tf-kyc-verifier/api/docs"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/idenfy"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/middleware"
@@ -42,12 +42,12 @@ import (
 // Server represents the HTTP server and its dependencies
 type Server struct {
 	app    *fiber.App
-	config *configs.Config
+	config *config.Config
 	logger logger.Logger
 }
 
 // New creates a new server instance with the given configuration and options
-func New(config *configs.Config, srvLogger logger.Logger) (*Server, error) {
+func New(config *config.Config, srvLogger logger.Logger) (*Server, error) {
 	// Create base context for initialization
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

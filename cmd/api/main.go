@@ -4,13 +4,13 @@ import (
 	"log"
 
 	_ "github.com/threefoldtech/tf-kyc-verifier/api/docs"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/server"
 )
 
 func main() {
-	config, err := configs.LoadConfig()
+	config, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("Failed to load configuration:", err)
 	}

@@ -55,7 +55,7 @@ type TFChainConfig struct {
 	WsProviderURL string
 }
 
-// implement SubstrateConfig for configs.TFChain
+// implement SubstrateConfig for config.TFChain
 func (c *TFChainConfig) GetWsProviderURL() string {
 	return c.WsProviderURL
 }

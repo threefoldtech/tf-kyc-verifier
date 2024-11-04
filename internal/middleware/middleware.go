@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
@@ -22,7 +22,7 @@ func CORS() fiber.Handler {
 }
 
 // AuthMiddleware is a middleware that validates the authentication credentials
-func AuthMiddleware(config configs.Challenge) fiber.Handler {
+func AuthMiddleware(config config.Challenge) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get("X-Client-ID")
 		signature := c.Get("X-Signature")

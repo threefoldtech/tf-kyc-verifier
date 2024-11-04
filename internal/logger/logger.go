@@ -8,7 +8,7 @@ package logger
 import (
 	"context"
 
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 )
 
 type LoggerW struct {
@@ -19,7 +19,7 @@ type Fields map[string]interface{}
 
 var log *LoggerW
 
-func Init(config configs.Log) {
+func Init(config config.Log) {
 	zapLogger, err := NewZapLogger(config.Debug, context.Background())
 	if err != nil {
 		panic(err)
