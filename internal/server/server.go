@@ -200,15 +200,18 @@ func (s *Server) setupServices(repos *repositories) (services.KYCService, error)
 	if err != nil {
 		return nil, fmt.Errorf("initializing substrate client: %w", err)
 	}
-
-	return services.NewKYCService(
+	kycService, err := services.NewKYCService(
 		repos.verification,
 		repos.token,
 		idenfyClient,
 		substrateClient,
 		s.config,
 		s.logger,
-	), nil
+	)
+	if err != nil {
+		return nil, err
+	}
+	return kycService, nil
 }
 
 func (s *Server) setupRoutes(kycService services.KYCService, mongoCl *mongo.Client) error {

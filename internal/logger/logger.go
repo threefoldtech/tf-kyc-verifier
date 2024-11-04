@@ -7,6 +7,7 @@ package logger
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 )
@@ -19,20 +20,21 @@ type Fields map[string]interface{}
 
 var log *LoggerW
 
-func Init(config config.Log) {
+func Init(config config.Log) error {
 	zapLogger, err := NewZapLogger(config.Debug, context.Background())
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("initializing zap logger: %w", err)
 	}
 
 	log = &LoggerW{logger: zapLogger}
+	return nil
 }
 
-func GetLogger() *LoggerW {
+func GetLogger() (*LoggerW, error) {
 	if log == nil {
-		panic("logger not initialized")
+		return nil, fmt.Errorf("logger not initialized")
 	}
-	return log
+	return log, nil
 }
 
 func (lw *LoggerW) Debug(msg string, fields Fields) {

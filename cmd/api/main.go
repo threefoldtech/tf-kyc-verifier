@@ -15,8 +15,14 @@ func main() {
 		log.Fatal("Failed to load configuration:", err)
 	}
 
-	logger.Init(config.Log)
-	srvLogger := logger.GetLogger()
+	err = logger.Init(config.Log)
+	if err != nil {
+		log.Fatal("Failed to initialize logger:", err)
+	}
+	srvLogger, err := logger.GetLogger()
+	if err != nil {
+		log.Fatal("Failed to get logger:", err)
+	}
 
 	srvLogger.Debug("Configuration loaded successfully", logger.Fields{
 		"config": config.GetPublicConfig(),
@@ -32,5 +38,10 @@ func main() {
 	srvLogger.Info("Starting server on port:", logger.Fields{
 		"port": config.Server.Port,
 	})
-	server.Run()
+	err = server.Run()
+	if err != nil {
+		srvLogger.Fatal("Failed to start server", logger.Fields{
+			"error": err,
+		})
+	}
 }
