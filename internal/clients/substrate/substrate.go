@@ -6,8 +6,8 @@ package substrate
 
 import (
 	"fmt"
+	"log/slog"
 
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	tfchain "github.com/threefoldtech/tfchain/clients/tfchain-client-go"
 )
 
@@ -23,10 +23,10 @@ type SubstrateClient interface {
 
 type Substrate struct {
 	api    *tfchain.Substrate
-	logger logger.Logger
+	logger *slog.Logger
 }
 
-func New(config WsProviderURLGetter, logger logger.Logger) (*Substrate, error) {
+func New(config WsProviderURLGetter, logger *slog.Logger) (*Substrate, error) {
 	mgr := tfchain.NewManager(config.GetWsProviderURL())
 	api, err := mgr.Substrate()
 	if err != nil {

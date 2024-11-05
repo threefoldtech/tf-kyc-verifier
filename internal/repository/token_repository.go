@@ -4,20 +4,20 @@ import (
 	"context"
 	"time"
 
+	"log/slog"
+
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 type MongoTokenRepository struct {
 	collection *mongo.Collection
-	logger     logger.Logger
+	logger     *slog.Logger
 }
 
-func NewMongoTokenRepository(ctx context.Context, db *mongo.Database, logger logger.Logger) TokenRepository {
+func NewMongoTokenRepository(ctx context.Context, db *mongo.Database, logger *slog.Logger) TokenRepository {
 	repo := &MongoTokenRepository{
 		collection: db.Collection("tokens"),
 		logger:     logger,
@@ -36,7 +36,7 @@ func (r *MongoTokenRepository) createTTLIndex(ctx context.Context) {
 		},
 	)
 	if err != nil {
-		r.logger.Error("Error creating TTL index", logger.Fields{"error": err})
+		r.logger.Error("Error creating TTL index", "error", err)
 	}
 }
 
@@ -46,7 +46,7 @@ func (r *MongoTokenRepository) createClientIdIndex(ctx context.Context) {
 		Options: options.Index().SetUnique(true),
 	})
 	if err != nil {
-		r.logger.Error("Error creating clientId index", logger.Fields{"error": err})
+		r.logger.Error("Error creating clientId index", "error", err)
 	}
 }
 

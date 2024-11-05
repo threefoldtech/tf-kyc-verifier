@@ -7,7 +7,7 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/url"
 	"slices"
 
@@ -158,15 +158,15 @@ func (c *Config) Validate() error {
 	}
 	// MinBalanceToVerifyAccount
 	if c.Verification.MinBalanceToVerifyAccount < 20000000 {
-		log.Println("Warn: Verification MinBalanceToVerifyAccount is less than 20000000. This is not recommended and can lead to security issues. If you are sure about this, you can ignore this message.")
+		slog.Warn("Verification MinBalanceToVerifyAccount is less than 20000000. This is not recommended and can lead to security issues. If you are sure about this, you can ignore this message.")
 	}
 	// DevMode
 	if c.Idenfy.DevMode {
-		log.Println("Warn: iDenfy DevMode is enabled. This is not intended for environments other than development. If you are sure about this, you can ignore this message.")
+		slog.Warn("iDenfy DevMode is enabled. This is not intended for environments other than development. If you are sure about this, you can ignore this message.")
 	}
 	// Namespace
 	if c.Idenfy.Namespace != "" {
-		log.Println("Warn: iDenfy Namespace is set. This ideally should be empty. If you are sure about this, you can ignore this message.")
+		slog.Warn("iDenfy Namespace is set. This ideally should be empty. If you are sure about this, you can ignore this message.")
 	}
 	return nil
 }

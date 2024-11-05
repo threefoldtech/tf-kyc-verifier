@@ -12,6 +12,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -32,7 +33,6 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/middleware"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/repository"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/services"
@@ -52,11 +52,11 @@ const (
 type Server struct {
 	app    *fiber.App
 	config *config.Config
-	logger logger.Logger
+	logger *slog.Logger
 }
 
 // New creates a new server instance with the given configuration and options
-func New(config *config.Config, srvLogger logger.Logger) (*Server, error) {
+func New(config *config.Config, srvLogger *slog.Logger) (*Server, error) {
 	// Create base context for initialization
 	ctx, cancel := context.WithTimeout(context.Background(), SERVER_STARTUP_TIMEOUT)
 	defer cancel()
@@ -117,7 +117,7 @@ func (s *Server) initializeCore(ctx context.Context) error {
 }
 
 func (s *Server) setupMiddleware() error {
-	s.logger.Debug("Setting up middleware", nil)
+	s.logger.Debug("Setting up middleware")
 
 	// Setup rate limiter stores
 	ipLimiterStore := mongodb.New(mongodb.Config{
@@ -177,7 +177,7 @@ func (s *Server) setupMiddleware() error {
 }
 
 func (s *Server) setupDatabase(ctx context.Context) (*mongo.Client, *mongo.Database, error) {
-	s.logger.Debug("Connecting to database", nil)
+	s.logger.Debug("Connecting to database")
 
 	client, err := repository.NewMongoClient(ctx, s.config.MongoDB.URI)
 	if err != nil {
@@ -193,7 +193,7 @@ type repositories struct {
 }
 
 func (s *Server) setupRepositories(ctx context.Context, db *mongo.Database) (*repositories, error) {
-	s.logger.Debug("Setting up repositories", nil)
+	s.logger.Debug("Setting up repositories")
 
 	return &repositories{
 		token:        repository.NewMongoTokenRepository(ctx, db, s.logger),
@@ -202,7 +202,7 @@ func (s *Server) setupRepositories(ctx context.Context, db *mongo.Database) (*re
 }
 
 func (s *Server) setupServices(repos *repositories) (*services.KYCService, error) {
-	s.logger.Debug("Setting up services", nil)
+	s.logger.Debug("Setting up services")
 
 	idenfyClient := idenfy.New(&s.config.Idenfy, s.logger)
 
@@ -225,7 +225,7 @@ func (s *Server) setupServices(repos *repositories) (*services.KYCService, error
 }
 
 func (s *Server) setupRoutes(kycService *services.KYCService, mongoCl *mongo.Client) error {
-	s.logger.Debug("Setting up routes", nil)
+	s.logger.Debug("Setting up routes")
 
 	handler := handlers.NewHandler(kycService, s.config, s.logger)
 
@@ -283,11 +283,11 @@ func (s *Server) Run() error {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 		// Graceful shutdown
-		s.logger.Info("Shutting down server...", nil)
+		s.logger.Info("Shutting down server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		if err := s.app.ShutdownWithContext(ctx); err != nil {
-			s.logger.Error("Server forced to shutdown:", logger.Fields{"error": err})
+			s.logger.Error("Server forced to shutdown:", slog.String("error", err.Error()))
 		}
 	}()
 

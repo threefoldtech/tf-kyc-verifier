@@ -7,6 +7,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/repository"
 )
@@ -29,11 +29,11 @@ type KYCService struct {
 	idenfy           idenfy.IdenfyClient
 	substrate        substrate.SubstrateClient
 	config           *config.Verification
-	logger           logger.Logger
+	logger           *slog.Logger
 	IdenfySuffix     string
 }
 
-func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy idenfy.IdenfyClient, substrateClient substrate.SubstrateClient, config *config.Config, logger logger.Logger) (*KYCService, error) {
+func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy idenfy.IdenfyClient, substrateClient substrate.SubstrateClient, config *config.Config, logger *slog.Logger) (*KYCService, error) {
 	idenfySuffix, err := GetIdenfySuffix(substrateClient, config)
 	if err != nil {
 		return nil, fmt.Errorf("getting idenfy suffix: %w", err)
@@ -68,7 +68,7 @@ func GetChainNetworkName(substrateClient substrate.SubstrateClient) (string, err
 func (s *KYCService) GetOrCreateVerificationToken(ctx context.Context, clientID string) (*models.Token, bool, error) {
 	isVerified, err := s.IsUserVerified(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error checking if user is verified", logger.Fields{"clientID": clientID, "error": err})
+		s.logger.Error("Error checking if user is verified", "clientID", clientID, "error", err)
 		return nil, false, errors.NewInternalError("getting verification status from database", err) // db error
 	}
 	if isVerified {
@@ -76,7 +76,7 @@ func (s *KYCService) GetOrCreateVerificationToken(ctx context.Context, clientID 
 	}
 	token, err_ := s.tokenRepo.GetToken(ctx, clientID)
 	if err_ != nil {
-		s.logger.Error("Error getting token from database", logger.Fields{"clientID": clientID, "error": err_})
+		s.logger.Error("Error getting token from database", "clientID", clientID, "error", err_)
 		return nil, false, errors.NewInternalError("getting token from database", err_) // db error
 	}
 	// check if token is found and not expired
@@ -92,7 +92,7 @@ func (s *KYCService) GetOrCreateVerificationToken(ctx context.Context, clientID 
 	// check if user account balance satisfies the minimum required balance, return an error if not
 	hasRequiredBalance, err_ := s.AccountHasRequiredBalance(ctx, clientID)
 	if err_ != nil {
-		s.logger.Error("Error checking if user account has required balance", logger.Fields{"clientID": clientID, "error": err_})
+		s.logger.Error("Error checking if user account has required balance", "clientID", clientID, "error", err_)
 		return nil, false, errors.NewExternalError("checking if user account has required balance", err_)
 	}
 	if !hasRequiredBalance {
@@ -103,14 +103,14 @@ func (s *KYCService) GetOrCreateVerificationToken(ctx context.Context, clientID 
 	uniqueClientID := clientID + ":" + s.IdenfySuffix
 	newToken, err_ := s.idenfy.CreateVerificationSession(ctx, uniqueClientID)
 	if err_ != nil {
-		s.logger.Error("Error creating iDenfy verification session", logger.Fields{"clientID": clientID, "uniqueClientID": uniqueClientID, "error": err_})
+		s.logger.Error("Error creating iDenfy verification session", "clientID", clientID, "uniqueClientID", uniqueClientID, "error", err_)
 		return nil, false, errors.NewExternalError("creating iDenfy verification session", err_)
 	}
 	// save the token with the original clientID
 	newToken.ClientID = clientID
 	err_ = s.tokenRepo.SaveToken(ctx, &newToken)
 	if err_ != nil {
-		s.logger.Error("Error saving verification token to database", logger.Fields{"clientID": clientID, "error": err_})
+		s.logger.Error("Error saving verification token to database", "clientID", clientID, "error", err_)
 	}
 
 	return &newToken, true, nil
@@ -120,7 +120,7 @@ func (s *KYCService) DeleteToken(ctx context.Context, clientID string, scanRef s
 
 	err := s.tokenRepo.DeleteToken(ctx, clientID, scanRef)
 	if err != nil {
-		s.logger.Error("Error deleting verification token from database", logger.Fields{"clientID": clientID, "scanRef": scanRef, "error": err})
+		s.logger.Error("Error deleting verification token from database", "clientID", clientID, "scanRef", scanRef, "error", err)
 		return errors.NewInternalError("deleting verification token from database", err)
 	}
 	return nil
@@ -128,12 +128,12 @@ func (s *KYCService) DeleteToken(ctx context.Context, clientID string, scanRef s
 
 func (s *KYCService) AccountHasRequiredBalance(ctx context.Context, address string) (bool, error) {
 	if s.config.MinBalanceToVerifyAccount == 0 {
-		s.logger.Warn("Minimum balance to verify account is 0 which is not recommended", logger.Fields{"address": address})
+		s.logger.Warn("Minimum balance to verify account is 0 which is not recommended", "address", address)
 		return true, nil
 	}
 	balance, err := s.substrate.GetAccountBalance(address)
 	if err != nil {
-		s.logger.Error("Error getting account balance", logger.Fields{"address": address, "error": err})
+		s.logger.Error("Error getting account balance", "address", address, "error", err)
 		return false, errors.NewExternalError("getting account balance", err)
 	}
 	return balance >= s.config.MinBalanceToVerifyAccount, nil
@@ -145,7 +145,7 @@ func (s *KYCService) AccountHasRequiredBalance(ctx context.Context, address stri
 func (s *KYCService) GetVerificationData(ctx context.Context, clientID string) (*models.Verification, error) {
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error getting verification from database", logger.Fields{"clientID": clientID, "error": err})
+		s.logger.Error("Error getting verification from database", "clientID", clientID, "error", err)
 		return nil, errors.NewInternalError("getting verification from database", err)
 	}
 	return verification, nil
@@ -155,7 +155,7 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 	// check first if the clientID is in alwaysVerifiedAddresses
 	if s.config.AlwaysVerifiedIDs != nil && slices.Contains(s.config.AlwaysVerifiedIDs, clientID) {
 		final := true
-		s.logger.Info("ClientID is in always verified addresses. skipping verification", logger.Fields{"clientID": clientID})
+		s.logger.Info("ClientID is in always verified addresses. skipping verification", "clientID", clientID)
 		return &models.VerificationOutcome{
 			Final:     &final,
 			ClientID:  clientID,
@@ -165,7 +165,7 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 	}
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error getting verification from database", logger.Fields{"clientID": clientID, "error": err})
+		s.logger.Error("Error getting verification from database", "clientID", clientID, "error", err)
 		return nil, errors.NewInternalError("getting verification from database", err)
 	}
 	var outcome models.Outcome
@@ -190,12 +190,12 @@ func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID s
 	// get the address from the twinID
 	twinIDUint64, err := strconv.ParseUint(twinID, 10, 32)
 	if err != nil {
-		s.logger.Error("Error parsing twinID", logger.Fields{"twinID": twinID, "error": err})
+		s.logger.Error("Error parsing twinID", "twinID", twinID, "error", err)
 		return nil, errors.NewInternalError("parsing twinID", err)
 	}
 	address, err := s.substrate.GetAddressByTwinID(uint32(twinIDUint64))
 	if err != nil {
-		s.logger.Error("Error getting address from twinID", logger.Fields{"twinID": twinID, "error": err})
+		s.logger.Error("Error getting address from twinID", "twinID", twinID, "error", err)
 		return nil, errors.NewExternalError("looking up twinID address from TFChain", err)
 	}
 	return s.GetVerificationStatus(ctx, address)
@@ -204,17 +204,17 @@ func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID s
 func (s *KYCService) ProcessVerificationResult(ctx context.Context, body []byte, sigHeader string, result models.Verification) error {
 	err := s.idenfy.VerifyCallbackSignature(ctx, body, sigHeader)
 	if err != nil {
-		s.logger.Error("Error verifying callback signature", logger.Fields{"sigHeader": sigHeader, "error": err})
+		s.logger.Error("Error verifying callback signature", "sigHeader", sigHeader, "error", err)
 		return errors.NewAuthorizationError("verifying callback signature", err)
 	}
 	clientIDParts := strings.Split(result.ClientID, ":")
 	if len(clientIDParts) < 2 {
-		s.logger.Error("clientID have no network suffix", logger.Fields{"clientID": result.ClientID})
+		s.logger.Error("clientID have no network suffix", "clientID", result.ClientID)
 		return errors.NewInternalError("invalid clientID", nil)
 	}
 	networkSuffix := clientIDParts[len(clientIDParts)-1]
 	if networkSuffix != s.IdenfySuffix {
-		s.logger.Error("clientID has different network suffix", logger.Fields{"clientID": result.ClientID, "expectedSuffix": s.IdenfySuffix, "actualSuffix": networkSuffix})
+		s.logger.Error("clientID has different network suffix", "clientID", result.ClientID, "expectedSuffix", s.IdenfySuffix, "actualSuffix", networkSuffix)
 		return errors.NewInternalError("invalid clientID", nil)
 	}
 	// delete the token with the same clientID and same scanRef
@@ -222,18 +222,18 @@ func (s *KYCService) ProcessVerificationResult(ctx context.Context, body []byte,
 
 	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.IdenfyRef)
 	if err != nil {
-		s.logger.Warn("Error deleting verification token from database", logger.Fields{"clientID": result.ClientID, "scanRef": result.IdenfyRef, "error": err})
+		s.logger.Warn("Error deleting verification token from database", "clientID", result.ClientID, "scanRef", result.IdenfyRef, "error", err)
 	}
 	// if the verification status is EXPIRED, we don't need to save it
 	if result.Status.Overall != nil && *result.Status.Overall != models.Overall("EXPIRED") {
 		// remove idenfy suffix from clientID
 		err = s.verificationRepo.SaveVerification(ctx, &result)
 		if err != nil {
-			s.logger.Error("Error saving verification to database", logger.Fields{"clientID": result.ClientID, "scanRef": result.IdenfyRef, "error": err})
+			s.logger.Error("Error saving verification to database", "clientID", result.ClientID, "scanRef", result.IdenfyRef, "error", err)
 			return errors.NewInternalError("saving verification to database", err)
 		}
 	}
-	s.logger.Debug("Verification result processed successfully", logger.Fields{"result": result})
+	s.logger.Debug("Verification result processed successfully", "result", result)
 	return nil
 }
 
@@ -244,7 +244,7 @@ func (s *KYCService) ProcessDocExpirationNotification(ctx context.Context, clien
 func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool, error) {
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error getting verification from database", logger.Fields{"clientID": clientID, "error": err})
+		s.logger.Error("Error getting verification from database", "clientID", clientID, "error", err)
 		return false, errors.NewInternalError("getting verification from database", err)
 	}
 	if verification == nil {

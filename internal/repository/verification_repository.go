@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,10 +13,10 @@ import (
 
 type MongoVerificationRepository struct {
 	collection *mongo.Collection
-	logger     logger.Logger
+	logger     *slog.Logger
 }
 
-func NewMongoVerificationRepository(ctx context.Context, db *mongo.Database, logger logger.Logger) VerificationRepository {
+func NewMongoVerificationRepository(ctx context.Context, db *mongo.Database, logger *slog.Logger) VerificationRepository {
 	// create index for clientId
 	repo := &MongoVerificationRepository{
 		collection: db.Collection("verifications"),
@@ -32,7 +32,7 @@ func (r *MongoVerificationRepository) createClientIdIndex(ctx context.Context) {
 		Options: options.Index().SetUnique(true),
 	})
 	if err != nil {
-		r.logger.Error("Error creating clientId index", logger.Fields{"error": err})
+		r.logger.Error("Error creating clientId index", "error", err)
 	}
 }
 

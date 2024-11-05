@@ -29,7 +29,7 @@ type ServiceError struct {
 
 func (e *ServiceError) Error() string {
 	if e.Err != nil {
-		return fmt.Sprintf("%s: %s (%v)", e.Type, e.Msg, e.Err)
+		return fmt.Sprintf("%s: %s: %v", e.Type, e.Msg, e.Err)
 	}
 	return fmt.Sprintf("%s: %s", e.Type, e.Msg)
 }

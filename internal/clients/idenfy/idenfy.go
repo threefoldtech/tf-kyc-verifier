@@ -15,9 +15,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"github.com/valyala/fasthttp"
 )
@@ -25,14 +25,14 @@ import (
 type Idenfy struct {
 	client *fasthttp.Client // TODO: Interface
 	config IdenfyConfig     // TODO: Interface
-	logger logger.Logger
+	logger *slog.Logger
 }
 
 const (
 	VerificationSessionEndpoint = "/api/v2/token"
 )
 
-func New(config IdenfyConfig, logger logger.Logger) *Idenfy {
+func New(config IdenfyConfig, logger *slog.Logger) *Idenfy {
 	return &Idenfy{
 		client: &fasthttp.Client{},
 		config: config,
@@ -70,24 +70,17 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
-	c.logger.Debug("Preparing iDenfy verification session request", logger.Fields{
-		"request": jsonBody,
-	})
+	c.logger.Debug("Preparing iDenfy verification session request", "request", jsonBody)
 	err = c.client.Do(req, resp)
 	if err != nil {
 		return models.Token{}, fmt.Errorf("sending token request to iDenfy: %w", err)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
-		c.logger.Debug("Received unexpected status code from iDenfy", logger.Fields{
-			"status": resp.StatusCode(),
-			"error":  string(resp.Body()),
-		})
+		c.logger.Debug("Received unexpected status code from iDenfy", "status", resp.StatusCode(), "error", string(resp.Body()))
 		return models.Token{}, fmt.Errorf("unexpected status code from iDenfy: %d", resp.StatusCode())
 	}
-	c.logger.Debug("Received response from iDenfy", logger.Fields{
-		"response": string(resp.Body()),
-	})
+	c.logger.Debug("Received response from iDenfy", "response", string(resp.Body()))
 
 	var result models.Token
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {

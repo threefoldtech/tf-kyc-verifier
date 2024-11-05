@@ -4,25 +4,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	expectedSig := "249d9a838e9b981935324b02367ca72552aa430fc766f45f77fab7a81f9f3b9d"
-	logger.Init(config.Log{})
-	log, err := logger.GetLogger()
-	if err != nil {
-		t.Fatalf("getting logger: %v", err)
-	}
+	logger := slog.Default()
 	client := New(&config.Idenfy{
 		CallbackSignKey: "TestingKey",
-	}, log)
+	}, logger)
 
 	assert.NotNil(t, client, "Client is nil")
 	webhook1, err := os.ReadFile("testdata/webhook.1.json")
@@ -34,9 +30,7 @@ func TestClient_DecodeReaderIdentityCallback(t *testing.T) {
 	err = decoder.Decode(&resp)
 	assert.NoError(t, err)
 	// Basic verification info
-	log.Info("resp", logger.Fields{
-		"resp": resp,
-	})
+	logger.Info("resp", "resp", resp)
 	assert.Equal(t, "123", resp.ClientID)
 	assert.Equal(t, "scan-ref", resp.IdenfyRef)
 	assert.Equal(t, "external-ref", resp.ExternalRef)

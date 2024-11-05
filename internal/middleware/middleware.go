@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -9,7 +11,7 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/responses"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
@@ -23,9 +25,7 @@ func AuthMiddleware(config config.Challenge) fiber.Handler {
 		challenge := c.Get("X-Challenge")
 
 		if clientID == "" || signature == "" || challenge == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Missing authentication credentials",
-			})
+			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("missing authentication credentials"))
 		}
 
 		// Verify the clientID and signature here
@@ -36,9 +36,7 @@ func AuthMiddleware(config config.Challenge) fiber.Handler {
 			if ok {
 				return handlers.HandleServiceError(c, serviceError)
 			}
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
 		}
 		// Verify the signature
 		err = VerifySubstrateSignature(clientID, signature, challenge)
@@ -47,9 +45,7 @@ func AuthMiddleware(config config.Challenge) fiber.Handler {
 			if ok {
 				return handlers.HandleServiceError(c, serviceError)
 			}
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+			return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
 		}
 
 		return c.Next()
@@ -125,7 +121,7 @@ func ValidateChallenge(address, signature, challenge, expectedDomain string, cha
 	return nil
 }
 
-func NewLoggingMiddleware(log logger.Logger) fiber.Handler {
+func NewLoggingMiddleware(logger *slog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		path := c.Path()
@@ -133,14 +129,7 @@ func NewLoggingMiddleware(log logger.Logger) fiber.Handler {
 		ip := c.IP()
 
 		// Log request
-		log.Info("Incoming request", logger.Fields{
-			"method":     method,
-			"path":       path,
-			"queries":    c.Queries(),
-			"ip":         ip,
-			"user_agent": string(c.Request().Header.UserAgent()),
-			"headers":    c.GetReqHeaders(),
-		})
+		logger.Info("Incoming request", slog.Any("method", method), slog.Any("path", path), slog.Any("queries", c.Queries()), slog.Any("ip", ip), slog.Any("user_agent", string(c.Request().Header.UserAgent())), slog.Any("headers", c.GetReqHeaders()))
 
 		// Handle request
 		err := c.Next()
@@ -153,25 +142,18 @@ func NewLoggingMiddleware(log logger.Logger) fiber.Handler {
 		responseSize := len(c.Response().Body())
 
 		// Log the response
-		logFields := logger.Fields{
-			"method":        method,
-			"path":          path,
-			"ip":            ip,
-			"status":        status,
-			"duration":      duration,
-			"response_size": responseSize,
-		}
+		logger := logger.With(slog.Any("method", method), slog.Any("path", path), slog.Any("ip", ip), slog.Any("status", status), slog.Any("duration", duration), slog.Any("response_size", responseSize))
 
 		// Add error if present
 		if err != nil {
-			logFields["error"] = err
+			logger = logger.With(slog.Any("error", err))
 			if status >= 500 {
-				log.Error("Request failed", logFields)
+				logger.Error("Request failed")
 			} else {
-				log.Info("Request failed", logFields)
+				logger.Info("Request failed")
 			}
 		} else {
-			log.Info("Request completed", logFields)
+			logger.Info("Request completed")
 		}
 
 		return err

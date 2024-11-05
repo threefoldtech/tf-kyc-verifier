@@ -1,11 +1,34 @@
 package responses
 
 import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
-type ErrorResponse struct {
-	Error string `json:"error"`
+type APIResponse struct {
+	Result any    `json:"result,omitempty"`
+	Error  string `json:"error,omitempty"`
+}
+
+func Success(data any) *APIResponse {
+	return &APIResponse{
+		Result: data,
+	}
+}
+
+func Error(err string) *APIResponse {
+	return &APIResponse{
+		Error: err,
+	}
+}
+
+func RespondWithError(c *fiber.Ctx, status int, err error) error {
+	return c.Status(status).JSON(Error(err.Error()))
+}
+
+func RespondWithData(c *fiber.Ctx, status int, data any) error {
+	return c.Status(status).JSON(Success(data))
 }
 
 type HealthStatus string
@@ -176,7 +199,7 @@ func NewVerificationDataResponse(verification *models.Verification) *Verificatio
 }
 
 // appConfigsResponse
-type AppConfigsResponse interface{}
+type AppConfigsResponse = config.Config
 
 // appVersionResponse
 type AppVersionResponse struct {
