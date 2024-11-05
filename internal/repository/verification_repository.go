@@ -22,17 +22,18 @@ func NewMongoVerificationRepository(ctx context.Context, db *mongo.Database, log
 		collection: db.Collection("verifications"),
 		logger:     logger,
 	}
-	repo.createClientIdIndex(ctx)
+	repo.createCollectionIndexes(ctx)
 	return repo
 }
 
-func (r *MongoVerificationRepository) createClientIdIndex(ctx context.Context) {
+func (r *MongoVerificationRepository) createCollectionIndexes(ctx context.Context) {
+	key := bson.D{{Key: "clientId", Value: 1}}
 	_, err := r.collection.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "clientId", Value: 1}},
-		Options: options.Index().SetUnique(true),
+		Keys:    key,
+		Options: options.Index().SetUnique(false),
 	})
 	if err != nil {
-		r.logger.Error("Error creating clientId index", "error", err)
+		r.logger.Error("Error creating index", "key", key, "error", err)
 	}
 }
 

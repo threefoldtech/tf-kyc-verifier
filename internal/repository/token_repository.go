@@ -23,7 +23,7 @@ func NewMongoTokenRepository(ctx context.Context, db *mongo.Database, logger *sl
 		logger:     logger,
 	}
 	repo.createTTLIndex(ctx)
-	repo.createClientIdIndex(ctx)
+	repo.createCollectionIndexes(ctx)
 	return repo
 }
 
@@ -40,13 +40,19 @@ func (r *MongoTokenRepository) createTTLIndex(ctx context.Context) {
 	}
 }
 
-func (r *MongoTokenRepository) createClientIdIndex(ctx context.Context) {
-	_, err := r.collection.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "clientId", Value: 1}},
-		Options: options.Index().SetUnique(true),
-	})
-	if err != nil {
-		r.logger.Error("Error creating clientId index", "error", err)
+func (r *MongoTokenRepository) createCollectionIndexes(ctx context.Context) {
+	keys := []bson.D{
+		{{Key: "clientId", Value: 1}},
+		{{Key: "scanRef", Value: 1}},
+	}
+	for _, key := range keys {
+		_, err := r.collection.Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    key,
+			Options: options.Index().SetUnique(true),
+		})
+		if err != nil {
+			r.logger.Error("Error creating index", "key", key, "error", err)
+		}
 	}
 }
 
