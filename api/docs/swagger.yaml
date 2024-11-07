@@ -1,0 +1,533 @@
+basePath: /
+definitions:
+  config.Challenge:
+    properties:
+      domain:
+        type: string
+      window:
+        type: integer
+    type: object
+  config.IDLimiter:
+    properties:
+      maxTokenRequests:
+        type: integer
+      tokenExpiration:
+        type: integer
+    type: object
+  config.IPLimiter:
+    properties:
+      maxTokenRequests:
+        type: integer
+      tokenExpiration:
+        type: integer
+    type: object
+  config.Idenfy:
+    properties:
+      apikey:
+        type: string
+      apisecret:
+        type: string
+      baseURL:
+        type: string
+      callbackSignKey:
+        type: string
+      callbackUrl:
+        type: string
+      devMode:
+        type: boolean
+      namespace:
+        type: string
+      whitelistedIPs:
+        items:
+          type: string
+        type: array
+    type: object
+  config.Log:
+    properties:
+      debug:
+        type: boolean
+    type: object
+  config.MongoDB:
+    properties:
+      databaseName:
+        type: string
+      uri:
+        type: string
+    type: object
+  config.Server:
+    properties:
+      port:
+        type: string
+    type: object
+  config.TFChain:
+    properties:
+      wsProviderURL:
+        type: string
+    type: object
+  config.Verification:
+    properties:
+      alwaysVerifiedIDs:
+        items:
+          type: string
+        type: array
+      expiredDocumentOutcome:
+        type: string
+      minBalanceToVerifyAccount:
+        type: integer
+      suspiciousVerificationOutcome:
+        type: string
+    type: object
+  responses.AppConfigsResponse:
+    properties:
+      challenge:
+        $ref: '#/definitions/config.Challenge'
+      idenfy:
+        $ref: '#/definitions/config.Idenfy'
+      idlimiter:
+        $ref: '#/definitions/config.IDLimiter'
+      iplimiter:
+        $ref: '#/definitions/config.IPLimiter'
+      log:
+        $ref: '#/definitions/config.Log'
+      mongoDB:
+        $ref: '#/definitions/config.MongoDB'
+      server:
+        $ref: '#/definitions/config.Server'
+      tfchain:
+        $ref: '#/definitions/config.TFChain'
+      verification:
+        $ref: '#/definitions/config.Verification'
+    type: object
+  responses.AppVersionResponse:
+    properties:
+      version:
+        type: string
+    type: object
+  responses.HealthResponse:
+    properties:
+      errors:
+        items:
+          type: string
+        type: array
+      status:
+        $ref: '#/definitions/responses.HealthStatus'
+      timestamp:
+        type: string
+    type: object
+  responses.HealthStatus:
+    enum:
+    - Healthy
+    - Degraded
+    type: string
+    x-enum-varnames:
+    - HealthStatusHealthy
+    - HealthStatusDegraded
+  responses.Outcome:
+    enum:
+    - VERIFIED
+    - REJECTED
+    type: string
+    x-enum-varnames:
+    - OutcomeVerified
+    - OutcomeRejected
+  responses.TokenResponse:
+    properties:
+      authToken:
+        type: string
+      clientId:
+        type: string
+      digitString:
+        type: string
+      expiryTime:
+        type: integer
+      message:
+        type: string
+      scanRef:
+        type: string
+      sessionLength:
+        type: integer
+      tokenType:
+        type: string
+    type: object
+  responses.VerificationDataResponse:
+    properties:
+      additionalData: {}
+      address:
+        type: string
+      addressVerification: {}
+      ageEstimate:
+        type: string
+      authority:
+        type: string
+      birthPlace:
+        type: string
+      clientId:
+        type: string
+      clientIpProxyRiskLevel:
+        type: string
+      docBirthName:
+        type: string
+      docDateOfIssue:
+        type: string
+      docDob:
+        type: string
+      docExpiry:
+        type: string
+      docFirstName:
+        type: string
+      docIssuingCountry:
+        type: string
+      docLastName:
+        type: string
+      docNationality:
+        type: string
+      docNumber:
+        type: string
+      docPersonalCode:
+        type: string
+      docSex:
+        type: string
+      docTemporaryAddress:
+        type: string
+      docType:
+        type: string
+      driverLicenseCategory:
+        type: string
+      duplicateDocFaces:
+        items:
+          type: string
+        type: array
+      duplicateFaces:
+        items:
+          type: string
+        type: array
+      fullName:
+        type: string
+      idenfyRef:
+        type: string
+      manuallyDataChanged:
+        type: boolean
+      mothersMaidenName:
+        type: string
+      orgAddress:
+        type: string
+      orgAuthority:
+        type: string
+      orgBirthName:
+        type: string
+      orgBirthPlace:
+        type: string
+      orgFirstName:
+        type: string
+      orgLastName:
+        type: string
+      orgMothersMaidenName:
+        type: string
+      orgNationality:
+        type: string
+      orgTemporaryAddress:
+        type: string
+      selectedCountry:
+        type: string
+    type: object
+  responses.VerificationStatusResponse:
+    properties:
+      clientId:
+        type: string
+      final:
+        type: boolean
+      idenfyRef:
+        type: string
+      status:
+        $ref: '#/definitions/responses.Outcome'
+    type: object
+info:
+  contact:
+    email: info@threefold.io
+    name: threefold.io
+    url: https://threefold.io
+  description: This is a KYC service for TFGrid.
+  termsOfService: http://swagger.io/terms/
+  title: TFGrid KYC API
+  version: 0.2.0
+paths:
+  /api/v1/configs:
+    get:
+      description: Returns the service configs
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.AppConfigsResponse'
+            type: object
+      summary: Get Service Configs
+      tags:
+      - Misc
+  /api/v1/data:
+    get:
+      consumes:
+      - application/json
+      description: Returns the verification data for a client
+      parameters:
+      - description: TFChain SS58Address
+        in: header
+        maxLength: 48
+        minLength: 48
+        name: X-Client-ID
+        required: true
+        type: string
+      - description: hex-encoded message `{api-domain}:{timestamp}`
+        in: header
+        name: X-Challenge
+        required: true
+        type: string
+      - description: hex-encoded sr25519|ed25519 signature
+        in: header
+        maxLength: 128
+        minLength: 128
+        name: X-Signature
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.VerificationDataResponse'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get Verification Data
+      tags:
+      - Verification
+  /api/v1/health:
+    get:
+      description: Returns the health status of the service
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.HealthResponse'
+            type: object
+      summary: Health Check
+      tags:
+      - Health
+  /api/v1/status:
+    get:
+      consumes:
+      - application/json
+      description: Returns the verification status for a client
+      parameters:
+      - description: TFChain SS58Address
+        in: query
+        maxLength: 48
+        minLength: 48
+        name: client_id
+        type: string
+      - description: Twin ID
+        in: query
+        minLength: 1
+        name: twin_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.VerificationStatusResponse'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get Verification Status
+      tags:
+      - Verification
+  /api/v1/token:
+    post:
+      consumes:
+      - application/json
+      description: Returns a token for a client
+      parameters:
+      - description: TFChain SS58Address
+        in: header
+        maxLength: 48
+        minLength: 48
+        name: X-Client-ID
+        required: true
+        type: string
+      - description: hex-encoded message `{api-domain}:{timestamp}`
+        in: header
+        name: X-Challenge
+        required: true
+        type: string
+      - description: hex-encoded sr25519|ed25519 signature
+        in: header
+        maxLength: 128
+        minLength: 128
+        name: X-Signature
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Existing token retrieved
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.TokenResponse'
+            type: object
+        "201":
+          description: New token created
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.TokenResponse'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "402":
+          description: Payment Required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Get or Generate iDenfy Verification Token
+      tags:
+      - Token
+  /api/v1/version:
+    get:
+      description: Returns the service version
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.AppVersionResponse'
+            type: object
+      summary: Get Service Version
+      tags:
+      - Misc
+  /webhooks/idenfy/id-expiration:
+    post:
+      consumes:
+      - application/json
+      description: Processes the doc expiration notification for a client
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Process Doc Expiration Notification
+      tags:
+      - Webhooks
+  /webhooks/idenfy/verification-update:
+    post:
+      consumes:
+      - application/json
+      description: Processes the verification update for a client
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Process Verification Update
+      tags:
+      - Webhooks
+swagger: "2.0"

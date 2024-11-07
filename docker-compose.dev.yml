@@ -1,0 +1,20 @@
+services:
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo_express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=db
+      - ME_CONFIG_MONGODB_PORT=27017
+    depends_on:
+      - db
+    ports:
+      - "8888:8081"
+    env_file:
+      - .express.env
+    networks:
+      - default
+
+networks:
+  default:
+    external: true
+    name: tf_kyc_network

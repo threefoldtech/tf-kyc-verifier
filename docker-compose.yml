@@ -1,0 +1,59 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tf_kyc_api
+    image: ghcr.io/threefoldtech/tf-kyc-verifier:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .app.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/api/v1/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: mongo:8
+    container_name: tf_kyc_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    env_file:
+      - .db.env
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo_express
+    environment:
+        - ME_CONFIG_MONGODB_SERVER=db
+        - ME_CONFIG_MONGODB_PORT=27017
+    depends_on:
+        - db
+    ports:
+      - "8888:8081"
+    env_file:
+      - .express.env
+
+volumes:
+  mongodb_data:
+
+networks:
+  default:
+    name: tf_kyc_network
+    driver: bridge
