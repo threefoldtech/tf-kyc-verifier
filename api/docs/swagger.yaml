@@ -1,8 +1,106 @@
 basePath: /
 definitions:
-  responses.ErrorResponse:
+  config.Challenge:
     properties:
-      error:
+      domain:
+        type: string
+      window:
+        type: integer
+    type: object
+  config.IDLimiter:
+    properties:
+      maxTokenRequests:
+        type: integer
+      tokenExpiration:
+        type: integer
+    type: object
+  config.IPLimiter:
+    properties:
+      maxTokenRequests:
+        type: integer
+      tokenExpiration:
+        type: integer
+    type: object
+  config.Idenfy:
+    properties:
+      apikey:
+        type: string
+      apisecret:
+        type: string
+      baseURL:
+        type: string
+      callbackSignKey:
+        type: string
+      callbackUrl:
+        type: string
+      devMode:
+        type: boolean
+      namespace:
+        type: string
+      whitelistedIPs:
+        items:
+          type: string
+        type: array
+    type: object
+  config.Log:
+    properties:
+      debug:
+        type: boolean
+    type: object
+  config.MongoDB:
+    properties:
+      databaseName:
+        type: string
+      uri:
+        type: string
+    type: object
+  config.Server:
+    properties:
+      port:
+        type: string
+    type: object
+  config.TFChain:
+    properties:
+      wsProviderURL:
+        type: string
+    type: object
+  config.Verification:
+    properties:
+      alwaysVerifiedIDs:
+        items:
+          type: string
+        type: array
+      expiredDocumentOutcome:
+        type: string
+      minBalanceToVerifyAccount:
+        type: integer
+      suspiciousVerificationOutcome:
+        type: string
+    type: object
+  responses.AppConfigsResponse:
+    properties:
+      challenge:
+        $ref: '#/definitions/config.Challenge'
+      idenfy:
+        $ref: '#/definitions/config.Idenfy'
+      idlimiter:
+        $ref: '#/definitions/config.IDLimiter'
+      iplimiter:
+        $ref: '#/definitions/config.IPLimiter'
+      log:
+        $ref: '#/definitions/config.Log'
+      mongoDB:
+        $ref: '#/definitions/config.MongoDB'
+      server:
+        $ref: '#/definitions/config.Server'
+      tfchain:
+        $ref: '#/definitions/config.TFChain'
+      verification:
+        $ref: '#/definitions/config.Verification'
+    type: object
+  responses.AppVersionResponse:
+    properties:
+      version:
         type: string
     type: object
   responses.HealthResponse:
@@ -145,9 +243,9 @@ definitions:
     type: object
 info:
   contact:
-    email: info@codescalers.com
-    name: Codescalers Egypt
-    url: https://codescalers-egypt.com
+    email: info@threefold.io
+    name: threefold.io
+    url: https://threefold.io
   description: This is a KYC service for TFGrid.
   termsOfService: http://swagger.io/terms/
   title: TFGrid KYC API
@@ -159,7 +257,11 @@ paths:
       responses:
         "200":
           description: OK
-          schema: {}
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/responses.AppConfigsResponse'
+            type: object
       summary: Get Service Configs
       tags:
       - Misc
@@ -194,23 +296,38 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/responses.VerificationDataResponse'
+            properties:
+              result:
+                $ref: '#/definitions/responses.VerificationDataResponse'
+            type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
       summary: Get Verification Data
       tags:
       - Verification
@@ -221,7 +338,10 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/responses.HealthResponse'
+            properties:
+              result:
+                $ref: '#/definitions/responses.HealthResponse'
+            type: object
       summary: Health Check
       tags:
       - Health
@@ -248,19 +368,38 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/responses.VerificationStatusResponse'
+            properties:
+              result:
+                $ref: '#/definitions/responses.VerificationStatusResponse'
+            type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       summary: Get Verification Status
       tags:
       - Verification
@@ -295,31 +434,59 @@ paths:
         "200":
           description: Existing token retrieved
           schema:
-            $ref: '#/definitions/responses.TokenResponse'
+            properties:
+              result:
+                $ref: '#/definitions/responses.TokenResponse'
+            type: object
         "201":
           description: New token created
           schema:
-            $ref: '#/definitions/responses.TokenResponse'
+            properties:
+              result:
+                $ref: '#/definitions/responses.TokenResponse'
+            type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "402":
           description: Payment Required
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/responses.ErrorResponse'
+            properties:
+              error:
+                type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
       summary: Get or Generate iDenfy Verification Token
       tags:
       - Token
@@ -330,7 +497,10 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            properties:
+              result:
+                $ref: '#/definitions/responses.AppVersionResponse'
+            type: object
       summary: Get Service Version
       tags:
       - Misc

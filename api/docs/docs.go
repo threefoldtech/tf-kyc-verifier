@@ -11,9 +11,9 @@ const docTemplate = `{
         "title": "{{.Title}}",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
-            "name": "Codescalers Egypt",
-            "url": "https://codescalers-egypt.com",
-            "email": "info@codescalers.com"
+            "name": "threefold.io",
+            "url": "https://threefold.io",
+            "email": "info@threefold.io"
         },
         "version": "{{.Version}}"
     },
@@ -30,7 +30,14 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "schema": {}
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/responses.AppConfigsResponse"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -79,31 +86,56 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.VerificationDataResponse"
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/responses.VerificationDataResponse"
+                                }
+                            }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
@@ -120,7 +152,12 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.HealthResponse"
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/responses.HealthResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -160,25 +197,56 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/responses.VerificationStatusResponse"
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/responses.VerificationStatusResponse"
+                                }
+                            }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
@@ -228,43 +296,89 @@ const docTemplate = `{
                     "200": {
                         "description": "Existing token retrieved",
                         "schema": {
-                            "$ref": "#/definitions/responses.TokenResponse"
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/responses.TokenResponse"
+                                }
+                            }
                         }
                     },
                     "201": {
                         "description": "New token created",
                         "schema": {
-                            "$ref": "#/definitions/responses.TokenResponse"
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/responses.TokenResponse"
+                                }
+                            }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "402": {
                         "description": "Payment Required",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/responses.ErrorResponse"
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
@@ -281,7 +395,12 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/responses.AppVersionResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -329,10 +448,162 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "responses.ErrorResponse": {
+        "config.Challenge": {
             "type": "object",
             "properties": {
-                "error": {
+                "domain": {
+                    "type": "string"
+                },
+                "window": {
+                    "type": "integer"
+                }
+            }
+        },
+        "config.IDLimiter": {
+            "type": "object",
+            "properties": {
+                "maxTokenRequests": {
+                    "type": "integer"
+                },
+                "tokenExpiration": {
+                    "type": "integer"
+                }
+            }
+        },
+        "config.IPLimiter": {
+            "type": "object",
+            "properties": {
+                "maxTokenRequests": {
+                    "type": "integer"
+                },
+                "tokenExpiration": {
+                    "type": "integer"
+                }
+            }
+        },
+        "config.Idenfy": {
+            "type": "object",
+            "properties": {
+                "apikey": {
+                    "type": "string"
+                },
+                "apisecret": {
+                    "type": "string"
+                },
+                "baseURL": {
+                    "type": "string"
+                },
+                "callbackSignKey": {
+                    "type": "string"
+                },
+                "callbackUrl": {
+                    "type": "string"
+                },
+                "devMode": {
+                    "type": "boolean"
+                },
+                "namespace": {
+                    "type": "string"
+                },
+                "whitelistedIPs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "config.Log": {
+            "type": "object",
+            "properties": {
+                "debug": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "config.MongoDB": {
+            "type": "object",
+            "properties": {
+                "databaseName": {
+                    "type": "string"
+                },
+                "uri": {
+                    "type": "string"
+                }
+            }
+        },
+        "config.Server": {
+            "type": "object",
+            "properties": {
+                "port": {
+                    "type": "string"
+                }
+            }
+        },
+        "config.TFChain": {
+            "type": "object",
+            "properties": {
+                "wsProviderURL": {
+                    "type": "string"
+                }
+            }
+        },
+        "config.Verification": {
+            "type": "object",
+            "properties": {
+                "alwaysVerifiedIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "expiredDocumentOutcome": {
+                    "type": "string"
+                },
+                "minBalanceToVerifyAccount": {
+                    "type": "integer"
+                },
+                "suspiciousVerificationOutcome": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.AppConfigsResponse": {
+            "type": "object",
+            "properties": {
+                "challenge": {
+                    "$ref": "#/definitions/config.Challenge"
+                },
+                "idenfy": {
+                    "$ref": "#/definitions/config.Idenfy"
+                },
+                "idlimiter": {
+                    "$ref": "#/definitions/config.IDLimiter"
+                },
+                "iplimiter": {
+                    "$ref": "#/definitions/config.IPLimiter"
+                },
+                "log": {
+                    "$ref": "#/definitions/config.Log"
+                },
+                "mongoDB": {
+                    "$ref": "#/definitions/config.MongoDB"
+                },
+                "server": {
+                    "$ref": "#/definitions/config.Server"
+                },
+                "tfchain": {
+                    "$ref": "#/definitions/config.TFChain"
+                },
+                "verification": {
+                    "$ref": "#/definitions/config.Verification"
+                }
+            }
+        },
+        "responses.AppVersionResponse": {
+            "type": "object",
+            "properties": {
+                "version": {
                     "type": "string"
                 }
             }

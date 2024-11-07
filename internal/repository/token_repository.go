@@ -4,32 +4,30 @@ import (
 	"context"
 	"time"
 
+	"log/slog"
+
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 )
 
 type MongoTokenRepository struct {
 	collection *mongo.Collection
-	logger     logger.Logger
+	logger     *slog.Logger
 }
 
-func NewMongoTokenRepository(db *mongo.Database, logger logger.Logger) TokenRepository {
+func NewMongoTokenRepository(ctx context.Context, db *mongo.Database, logger *slog.Logger) TokenRepository {
 	repo := &MongoTokenRepository{
 		collection: db.Collection("tokens"),
 		logger:     logger,
 	}
-	repo.createTTLIndex()
+	repo.createTTLIndex(ctx)
+	repo.createCollectionIndexes(ctx)
 	return repo
 }
 
-func (r *MongoTokenRepository) createTTLIndex() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
+func (r *MongoTokenRepository) createTTLIndex(ctx context.Context) {
 	_, err := r.collection.Indexes().CreateOne(
 		ctx,
 		mongo.IndexModel{
@@ -37,9 +35,24 @@ func (r *MongoTokenRepository) createTTLIndex() {
 			Options: options.Index().SetExpireAfterSeconds(0),
 		},
 	)
-
 	if err != nil {
-		r.logger.Error("Error creating TTL index", logger.Fields{"error": err})
+		r.logger.Error("Error creating TTL index", "error", err)
+	}
+}
+
+func (r *MongoTokenRepository) createCollectionIndexes(ctx context.Context) {
+	keys := []bson.D{
+		{{Key: "clientId", Value: 1}},
+		{{Key: "scanRef", Value: 1}},
+	}
+	for _, key := range keys {
+		_, err := r.collection.Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    key,
+			Options: options.Index().SetUnique(true),
+		})
+		if err != nil {
+			r.logger.Error("Error creating index", "key", key, "error", err)
+		}
 	}
 }
 

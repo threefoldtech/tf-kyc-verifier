@@ -1,8 +1,13 @@
-package configs
+/*
+Package config contains the configuration for the application.
+This layer is responsible for loading the configuration from the environment variables and validating it.
+*/
+package config
 
 import (
 	"errors"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/url"
 	"slices"
 
@@ -81,12 +86,12 @@ type Verification struct {
 	AlwaysVerifiedIDs             []string `env:"VERIFICATION_ALWAYS_VERIFIED_IDS" env-separator:","`
 }
 type IPLimiter struct {
-	MaxTokenRequests int `env:"IP_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
-	TokenExpiration  int `env:"IP_LIMITER_TOKEN_EXPIRATION" env-default:"1440"`
+	MaxTokenRequests uint `env:"IP_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
+	TokenExpiration  uint `env:"IP_LIMITER_TOKEN_EXPIRATION" env-default:"1440"`
 }
 type IDLimiter struct {
-	MaxTokenRequests int `env:"ID_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
-	TokenExpiration  int `env:"ID_LIMITER_TOKEN_EXPIRATION" env-default:"1440"`
+	MaxTokenRequests uint `env:"ID_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
+	TokenExpiration  uint `env:"ID_LIMITER_TOKEN_EXPIRATION" env-default:"1440"`
 }
 type Log struct {
 	Debug bool `env:"DEBUG" env-default:"false"`
@@ -96,11 +101,11 @@ type Challenge struct {
 	Domain string `env:"CHALLENGE_DOMAIN" env-required:"true"`
 }
 
-func LoadConfig() (*Config, error) {
+func LoadConfigFromEnv() (*Config, error) {
 	cfg := &Config{}
 	err := cleanenv.ReadEnv(cfg)
 	if err != nil {
-		return nil, errors.Join(errors.New("error loading config"), err)
+		return nil, fmt.Errorf("loading config: %w", err)
 	}
 	// cfg.Validate()
 	return cfg, nil
@@ -120,7 +125,7 @@ func (c Config) GetPublicConfig() Config {
 func (c *Config) Validate() error {
 	// iDenfy base URL should be https://ivs.idenfy.com. This is the only supported base URL for now.
 	if c.Idenfy.BaseURL != "https://ivs.idenfy.com" {
-		return errors.New("invalid iDenfy base URL. It should be https://ivs.idenfy.com")
+		return errors.New("invalid iDenfy base URL. it should be https://ivs.idenfy.com")
 	}
 	// CallbackUrl should be valid URL
 	parsedCallbackUrl, err := url.ParseRequestURI(c.Idenfy.CallbackUrl)
@@ -129,7 +134,7 @@ func (c *Config) Validate() error {
 	}
 	// CallbackSignKey should not be empty
 	if len(c.Idenfy.CallbackSignKey) < 16 {
-		return errors.New("CallbackSignKey should be at least 16 characters long")
+		return errors.New("invalid callbackSignKey. it should be at least 16 characters long")
 	}
 	// WsProviderURL should be valid URL and start with wss://
 	if u, err := url.ParseRequestURI(c.TFChain.WsProviderURL); err != nil || u.Scheme != "wss" {
@@ -145,23 +150,23 @@ func (c *Config) Validate() error {
 	}
 	// SuspiciousVerificationOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.SuspiciousVerificationOutcome) {
-		return errors.New("invalid SuspiciousVerificationOutcome")
+		return errors.New("invalid SuspiciousVerificationOutcome. should be either APPROVED or REJECTED")
 	}
 	// ExpiredDocumentOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.ExpiredDocumentOutcome) {
-		return errors.New("invalid ExpiredDocumentOutcome")
+		return errors.New("invalid ExpiredDocumentOutcome. should be either APPROVED or REJECTED")
 	}
 	// MinBalanceToVerifyAccount
 	if c.Verification.MinBalanceToVerifyAccount < 20000000 {
-		log.Println("Warn: Verification MinBalanceToVerifyAccount is less than 20000000. This is not recommended and can lead to security issues. If you are sure about this, you can ignore this message.")
+		slog.Warn("Verification MinBalanceToVerifyAccount is less than 20000000. This is not recommended and can lead to security issues. If you are sure about this, you can ignore this message.")
 	}
 	// DevMode
 	if c.Idenfy.DevMode {
-		log.Println("Warn: iDenfy DevMode is enabled. This is not intended for environments other than development. If you are sure about this, you can ignore this message.")
+		slog.Warn("iDenfy DevMode is enabled. This is not intended for environments other than development. If you are sure about this, you can ignore this message.")
 	}
 	// Namespace
 	if c.Idenfy.Namespace != "" {
-		log.Println("Warn: iDenfy Namespace is set. This ideally should be empty. If you are sure about this, you can ignore this message.")
+		slog.Warn("iDenfy Namespace is set. This ideally should be empty. If you are sure about this, you can ignore this message.")
 	}
 	return nil
 }

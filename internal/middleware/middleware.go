@@ -1,37 +1,31 @@
 package middleware
 
 import (
+	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/configs"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/responses"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 )
 
-// CORS returns a CORS middleware
-func CORS() fiber.Handler {
-	return cors.New()
-}
-
 // AuthMiddleware is a middleware that validates the authentication credentials
-func AuthMiddleware(config configs.Challenge) fiber.Handler {
+func AuthMiddleware(config config.Challenge) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get("X-Client-ID")
 		signature := c.Get("X-Signature")
 		challenge := c.Get("X-Challenge")
 
 		if clientID == "" || signature == "" || challenge == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Missing authentication credentials",
-			})
+			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("missing authentication credentials"))
 		}
 
 		// Verify the clientID and signature here
@@ -42,9 +36,7 @@ func AuthMiddleware(config configs.Challenge) fiber.Handler {
 			if ok {
 				return handlers.HandleServiceError(c, serviceError)
 			}
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
 		}
 		// Verify the signature
 		err = VerifySubstrateSignature(clientID, signature, challenge)
@@ -53,9 +45,7 @@ func AuthMiddleware(config configs.Challenge) fiber.Handler {
 			if ok {
 				return handlers.HandleServiceError(c, serviceError)
 			}
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": err.Error(),
-			})
+			return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
 		}
 
 		return c.Next()
@@ -67,13 +57,13 @@ func fromHex(hex string) ([]byte, bool) {
 }
 
 func VerifySubstrateSignature(address, signature, challenge string) error {
-	challengeBytes, success := fromHex(challenge)
-	if !success {
+	challengeBytes, ok := fromHex(challenge)
+	if !ok {
 		return errors.NewValidationError("malformed challenge: failed to decode hex-encoded challenge", nil)
 	}
 	// hex to string
-	sig, success := fromHex(signature)
-	if !success {
+	sig, ok := fromHex(signature)
+	if !ok {
 		return errors.NewValidationError("malformed signature: failed to decode hex-encoded signature", nil)
 	}
 	// Convert address to public key
@@ -85,14 +75,14 @@ func VerifySubstrateSignature(address, signature, challenge string) error {
 	// Create a new ed25519 public key
 	pubkeyEd25519, err := ed25519.Scheme{}.FromPublicKey(pubkeyBytes)
 	if err != nil {
-		return errors.NewValidationError("error: can't create ed25519 public key", err)
+		return errors.NewValidationError("creating ed25519 public key", err)
 	}
 
 	if !pubkeyEd25519.Verify(challengeBytes, sig) {
 		// Create a new sr25519 public key
 		pubkeySr25519, err := sr25519.Scheme{}.FromPublicKey(pubkeyBytes)
 		if err != nil {
-			return errors.NewValidationError("error: can't create sr25519 public key", err)
+			return errors.NewValidationError("creating sr25519 public key", err)
 		}
 		if !pubkeySr25519.Verify(challengeBytes, sig) {
 			return errors.NewAuthorizationError("bad signature: signature does not match", nil)
@@ -104,8 +94,8 @@ func VerifySubstrateSignature(address, signature, challenge string) error {
 
 func ValidateChallenge(address, signature, challenge, expectedDomain string, challengeWindow int64) error {
 	// Parse and validate the challenge
-	challengeBytes, success := fromHex(challenge)
-	if !success {
+	challengeBytes, ok := fromHex(challenge)
+	if !ok {
 		return errors.NewValidationError("malformed challenge: failed to decode hex-encoded challenge", nil)
 	}
 	parts := strings.Split(string(challengeBytes), ":")
@@ -131,7 +121,7 @@ func ValidateChallenge(address, signature, challenge, expectedDomain string, cha
 	return nil
 }
 
-func NewLoggingMiddleware(log logger.Logger) fiber.Handler {
+func NewLoggingMiddleware(logger *slog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 		path := c.Path()
@@ -139,14 +129,7 @@ func NewLoggingMiddleware(log logger.Logger) fiber.Handler {
 		ip := c.IP()
 
 		// Log request
-		log.Info("Incoming request", logger.Fields{
-			"method":     method,
-			"path":       path,
-			"queries":    c.Queries(),
-			"ip":         ip,
-			"user_agent": string(c.Request().Header.UserAgent()),
-			"headers":    c.GetReqHeaders(),
-		})
+		logger.Info("Incoming request", slog.Any("method", method), slog.Any("path", path), slog.Any("queries", c.Queries()), slog.Any("ip", ip), slog.Any("user_agent", string(c.Request().Header.UserAgent())), slog.Any("headers", c.GetReqHeaders()))
 
 		// Handle request
 		err := c.Next()
@@ -159,25 +142,18 @@ func NewLoggingMiddleware(log logger.Logger) fiber.Handler {
 		responseSize := len(c.Response().Body())
 
 		// Log the response
-		logFields := logger.Fields{
-			"method":        method,
-			"path":          path,
-			"ip":            ip,
-			"status":        status,
-			"duration":      duration,
-			"response_size": responseSize,
-		}
+		logger := logger.With(slog.Any("method", method), slog.Any("path", path), slog.Any("ip", ip), slog.Any("status", status), slog.Any("duration", duration), slog.Any("response_size", responseSize))
 
 		// Add error if present
 		if err != nil {
-			logFields["error"] = err
+			logger = logger.With(slog.Any("error", err))
 			if status >= 500 {
-				log.Error("Request failed", logFields)
+				logger.Error("Request failed")
 			} else {
-				log.Info("Request failed", logFields)
+				logger.Info("Request failed")
 			}
 		} else {
-			log.Info("Request completed", logFields)
+			logger.Info("Request completed")
 		}
 
 		return err

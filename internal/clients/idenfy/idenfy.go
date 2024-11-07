@@ -1,3 +1,9 @@
+/*
+Package idenfy contains the iDenfy client for the application.
+This layer is responsible for interacting with the iDenfy API. the main operations are:
+- creating a verification session
+- verifying the callback signature
+*/
 package idenfy
 
 import (
@@ -9,9 +15,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"github.com/threefoldtech/tf-kyc-verifier/internal/logger"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"github.com/valyala/fasthttp"
 )
@@ -19,14 +25,14 @@ import (
 type Idenfy struct {
 	client *fasthttp.Client // TODO: Interface
 	config IdenfyConfig     // TODO: Interface
-	logger logger.Logger
+	logger *slog.Logger
 }
 
 const (
 	VerificationSessionEndpoint = "/api/v2/token"
 )
 
-func New(config IdenfyConfig, logger logger.Logger) *Idenfy {
+func New(config IdenfyConfig, logger *slog.Logger) *Idenfy {
 	return &Idenfy{
 		client: &fasthttp.Client{},
 		config: config,
@@ -53,7 +59,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	jsonBody, err := json.Marshal(RequestBody)
 	if err != nil {
-		return models.Token{}, fmt.Errorf("error marshaling request body: %w", err)
+		return models.Token{}, fmt.Errorf("marshaling request body: %w", err)
 	}
 	req.SetBody(jsonBody)
 	// Set deadline from context
@@ -64,28 +70,21 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
-	c.logger.Debug("Preparing iDenfy verification session request", logger.Fields{
-		"request": jsonBody,
-	})
+	c.logger.Debug("Preparing iDenfy verification session request", "request", jsonBody)
 	err = c.client.Do(req, resp)
 	if err != nil {
-		return models.Token{}, fmt.Errorf("error sending request: %w", err)
+		return models.Token{}, fmt.Errorf("sending token request to iDenfy: %w", err)
 	}
 
 	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
-		c.logger.Debug("Received unexpected status code from iDenfy", logger.Fields{
-			"status": resp.StatusCode(),
-			"error":  string(resp.Body()),
-		})
-		return models.Token{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+		c.logger.Debug("Received unexpected status code from iDenfy", "status", resp.StatusCode(), "error", string(resp.Body()))
+		return models.Token{}, fmt.Errorf("unexpected status code from iDenfy: %d", resp.StatusCode())
 	}
-	c.logger.Debug("Received response from iDenfy", logger.Fields{
-		"response": string(resp.Body()),
-	})
+	c.logger.Debug("Received response from iDenfy", "response", string(resp.Body()))
 
 	var result models.Token
 	if err := json.Unmarshal(resp.Body(), &result); err != nil {
-		return models.Token{}, fmt.Errorf("error decoding response: %w", err)
+		return models.Token{}, fmt.Errorf("decoding token response from iDenfy: %w", err)
 	}
 
 	return result, nil
@@ -93,9 +92,6 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 // verify signature of the callback
 func (c *Idenfy) VerifyCallbackSignature(ctx context.Context, body []byte, sigHeader string) error {
-	if len(c.config.GetCallbackSignKey()) < 1 {
-		return errors.New("callback was received but no signature key was provided")
-	}
 	sig, err := hex.DecodeString(sigHeader)
 	if err != nil {
 		return err
