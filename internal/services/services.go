@@ -250,14 +250,14 @@ func (s *KYCService) ProcessDocExpirationNotification(ctx context.Context, body 
 	err = s.verificationRepo.UpdateExpirationStatus(ctx, clientID, notification.ScanRef, notification.ExpirationThreshold)
 	if err != nil {
 		s.logger.Error("Error updating expiration status",
-			"clientID", notification.ClientID,
+			"clientID", clientID,
 			"status", notification.ExpirationThreshold,
 			"error", err)
 		return errors.NewInternalError("updating expiration status", err)
 	}
 
 	s.logger.Info("Updated document expiration status",
-		"clientID", notification.ClientID,
+		"clientID", clientID,
 		"status", notification.ExpirationThreshold)
 	return nil
 }
