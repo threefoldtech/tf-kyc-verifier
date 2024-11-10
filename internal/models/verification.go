@@ -7,33 +7,34 @@ import (
 )
 
 type Verification struct {
-	ID                    primitive.ObjectID `bson:"_id,omitempty" json:"-"`
-	CreatedAt             time.Time          `bson:"createdAt" json:"-"`
-	Final                 *bool              `bson:"final" json:"final"`                     // required
-	Platform              Platform           `bson:"platform" json:"platform"`               // required
-	Status                Status             `bson:"status" json:"status"`                   // required
-	Data                  PersonData         `bson:"data" json:"data"`                       // required
-	FileUrls              map[string]string  `bson:"fileUrls" json:"fileUrls"`               // required
-	IdenfyRef             string             `bson:"scanRef" json:"scanRef"`                 // required
-	ClientID              string             `bson:"clientId" json:"clientId"`               // required
-	StartTime             int64              `bson:"startTime" json:"startTime"`             // required
-	FinishTime            int64              `bson:"finishTime" json:"finishTime"`           // required
-	ClientIP              string             `bson:"clientIp" json:"clientIp"`               // required
-	ClientIPCountry       string             `bson:"clientIpCountry" json:"clientIpCountry"` // required
-	ClientLocation        string             `bson:"clientLocation" json:"clientLocation"`   // required
-	CompanyID             string             `bson:"companyId" json:"companyId"`             // required
-	BeneficiaryID         string             `bson:"beneficiaryId" json:"beneficiaryId"`     // required
-	RegistryCenterCheck   interface{}        `json:"registryCenterCheck,omitempty"`
-	AddressVerification   interface{}        `json:"addressVerification,omitempty"`
-	QuestionnaireAnswers  interface{}        `json:"questionnaireAnswers,omitempty"`
-	AdditionalSteps       map[string]string  `json:"additionalSteps,omitempty"`
-	UtilityData           []string           `json:"utilityData,omitempty"`
-	AdditionalStepPdfUrls map[string]string  `json:"additionalStepPdfUrls,omitempty"`
-	AML                   []AMLCheck         `bson:"AML" json:"AML,omitempty"`
-	LID                   []LID              `bson:"LID" json:"LID,omitempty"`
-	ExternalRef           string             `bson:"externalRef" json:"externalRef,omitempty"`
-	ManualAddress         string             `bson:"manualAddress" json:"manualAddress,omitempty"`
-	ManualAddressMatch    *bool              `bson:"manualAddressMatch" json:"manualAddressMatch,omitempty"`
+	ID                    primitive.ObjectID   `bson:"_id,omitempty" json:"-"`
+	CreatedAt             time.Time            `bson:"createdAt" json:"-"`
+	Final                 *bool                `bson:"final" json:"final"`                     // required
+	Platform              Platform             `bson:"platform" json:"platform"`               // required
+	Status                Status               `bson:"status" json:"status"`                   // required
+	Data                  PersonData           `bson:"data" json:"data"`                       // required
+	FileUrls              map[string]string    `bson:"fileUrls" json:"fileUrls"`               // required
+	IdenfyRef             string               `bson:"scanRef" json:"scanRef"`                 // required
+	ClientID              string               `bson:"clientId" json:"clientId"`               // required
+	StartTime             int64                `bson:"startTime" json:"startTime"`             // required
+	FinishTime            int64                `bson:"finishTime" json:"finishTime"`           // required
+	ClientIP              string               `bson:"clientIp" json:"clientIp"`               // required
+	ClientIPCountry       string               `bson:"clientIpCountry" json:"clientIpCountry"` // required
+	ClientLocation        string               `bson:"clientLocation" json:"clientLocation"`   // required
+	CompanyID             string               `bson:"companyId" json:"companyId"`             // required
+	BeneficiaryID         string               `bson:"beneficiaryId" json:"beneficiaryId"`     // required
+	RegistryCenterCheck   interface{}          `json:"registryCenterCheck,omitempty"`
+	AddressVerification   interface{}          `json:"addressVerification,omitempty"`
+	QuestionnaireAnswers  interface{}          `json:"questionnaireAnswers,omitempty"`
+	AdditionalSteps       map[string]string    `json:"additionalSteps,omitempty"`
+	UtilityData           []string             `json:"utilityData,omitempty"`
+	AdditionalStepPdfUrls map[string]string    `json:"additionalStepPdfUrls,omitempty"`
+	AML                   []AMLCheck           `bson:"AML" json:"AML,omitempty"`
+	LID                   []LID                `bson:"LID" json:"LID,omitempty"`
+	ExternalRef           string               `bson:"externalRef" json:"externalRef,omitempty"`
+	ManualAddress         string               `bson:"manualAddress" json:"manualAddress,omitempty"`
+	ManualAddressMatch    *bool                `bson:"manualAddressMatch" json:"manualAddressMatch,omitempty"`
+	ExpirationStatus      *ExpirationThreshold `bson:"expirationStatus,omitempty" json:"expirationStatus,omitempty"`
 }
 
 type Platform string

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -55,4 +56,24 @@ func (r *MongoVerificationRepository) GetVerification(ctx context.Context, clien
 		return nil, err
 	}
 	return &verification, nil
+}
+
+func (r *MongoVerificationRepository) UpdateExpirationStatus(ctx context.Context, clientID string, scanRef string, status models.ExpirationThreshold) error {
+	filter := bson.M{"clientId": clientID, "scanRef": scanRef}
+	update := bson.M{
+		"$set": bson.M{
+			"expirationStatus": status,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("updating expiration status: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("verification not found for client: %s", clientID)
+	}
+
+	return nil
 }

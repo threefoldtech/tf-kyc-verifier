@@ -91,7 +91,7 @@ func (s *Server) initializeCore(ctx context.Context) error {
 	}
 
 	// Setup database
-	dbClient, db, err := s.setupDatabase(ctx)
+	db, err := s.setupDatabase(ctx)
 	if err != nil {
 		return fmt.Errorf("setting up database: %w", err)
 	}
@@ -109,7 +109,7 @@ func (s *Server) initializeCore(ctx context.Context) error {
 	}
 
 	// Setup routes
-	if err := s.setupRoutes(service, dbClient); err != nil {
+	if err := s.setupRoutes(service, db.Client()); err != nil {
 		return fmt.Errorf("setting up routes: %w", err)
 	}
 
@@ -176,15 +176,15 @@ func (s *Server) setupMiddleware() error {
 	return nil
 }
 
-func (s *Server) setupDatabase(ctx context.Context) (*mongo.Client, *mongo.Database, error) {
+func (s *Server) setupDatabase(ctx context.Context) (*mongo.Database, error) {
 	s.logger.Debug("Connecting to database")
 
 	client, err := repository.NewMongoClient(ctx, s.config.MongoDB.URI)
 	if err != nil {
-		return nil, nil, fmt.Errorf("setting up database: %w", err)
+		return nil, fmt.Errorf("setting up database: %w", err)
 	}
 
-	return client, client.Database(s.config.MongoDB.DatabaseName), nil
+	return client.Database(s.config.MongoDB.DatabaseName), nil
 }
 
 type repositories struct {

@@ -9,9 +9,7 @@ This layer is responsible for handling the requests and responses, in more detai
 package handlers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -171,21 +169,19 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 		)
 		sigHeader := c.Get("Idenfy-Signature")
 		if len(sigHeader) < 1 {
+			h.logger.Error("Missing signature header", "headers", string(c.Request().Header.Header()))
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("no signature provided"))
 		}
 		body := c.Body()
 		var result models.Verification
-		decoder := json.NewDecoder(bytes.NewReader(body))
-		err := decoder.Decode(&result)
-		if err != nil {
+		if err := c.BodyParser(&result); err != nil {
 			h.logger.Error("Error decoding verification update", "error", err)
 			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
 		}
 		h.logger.Debug("Verification update after decoding", "result", result)
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
-		err = h.kycService.ProcessVerificationResult(ctx, body, sigHeader, result)
-		if err != nil {
+		if err := h.kycService.ProcessVerificationResult(ctx, body, sigHeader, result); err != nil {
 			return HandleError(c, err)
 		}
 		return responses.RespondWithData(c, fiber.StatusOK, nil)
@@ -201,9 +197,29 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 // @Router			/webhooks/idenfy/id-expiration [post]
 func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// TODO: implement
-		h.logger.Error("Received ID expiration notification but not implemented")
-		return c.SendStatus(fiber.StatusNotImplemented)
+		h.logger.Debug("Received ID expiration update",
+			"body", string(c.Body()),
+			"headers", &c.Request().Header,
+		)
+
+		// Verify signature
+		sigHeader := c.Get("Idenfy-Signature")
+		if len(sigHeader) < 1 {
+			h.logger.Error("Missing signature header", "headers", string(c.Request().Header.Header()))
+			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("missing signature header"))
+		}
+		body := c.Body()
+		var notification models.DocExpirationNotification
+		if err := c.BodyParser(&notification); err != nil {
+			h.logger.Error("Error decoding verification update", "error", err)
+			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("invalid request body"))
+		}
+
+		if err := h.kycService.ProcessDocExpirationNotification(c.Context(), body, sigHeader, notification); err != nil {
+			return HandleError(c, err)
+		}
+
+		return c.SendStatus(fiber.StatusOK)
 	}
 }
 
