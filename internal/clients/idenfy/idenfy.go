@@ -70,7 +70,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
-	c.logger.Debug("Preparing iDenfy verification session request", "request", jsonBody)
+	c.logger.Debug("Preparing iDenfy verification session request", "request_body", RequestBody)
 	err = c.client.Do(req, resp)
 	if err != nil {
 		return models.Token{}, fmt.Errorf("sending token request to iDenfy: %w", err)
