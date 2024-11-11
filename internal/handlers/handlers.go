@@ -37,6 +37,8 @@ const (
 	// Query parameters
 	QueryParamClientID = "client_id"
 	QueryParamTwinID   = "twin_id"
+
+	HandlerTimeout = 5 * time.Second
 )
 
 type Handler struct {
@@ -78,7 +80,7 @@ func NewHandler(kycService *services.KYCService, config *config.Config, logger *
 func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get(HeaderClientID)
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		token, isNewToken, err := h.kycService.GetOrCreateVerificationToken(ctx, clientID)
 		if err != nil {
@@ -109,7 +111,7 @@ func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 func (h *Handler) GetVerificationData() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		clientID := c.Get(HeaderClientID)
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		verification, err := h.kycService.GetVerificationData(ctx, clientID)
 		if err != nil {
@@ -147,7 +149,7 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 		}
 		var verification *models.VerificationOutcome
 		var err error
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		if clientID != "" {
 			verification, err = h.kycService.GetVerificationStatus(ctx, clientID)
@@ -195,7 +197,7 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 			h.logger.Error("Error decoding verification update", "error", err)
 			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
 		}
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		if err := h.kycService.ProcessVerificationResult(ctx, body, sigHeader, result); err != nil {
 			return HandleError(c, err)
@@ -230,8 +232,9 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 			h.logger.Error("Error decoding verification update", "error", err)
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("invalid request body"))
 		}
-
-		if err := h.kycService.ProcessDocExpirationNotification(c.Context(), body, sigHeader, notification); err != nil {
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
+		defer cancel()
+		if err := h.kycService.ProcessDocExpirationNotification(ctx, body, sigHeader, notification); err != nil {
 			return HandleError(c, err)
 		}
 
@@ -246,7 +249,7 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 // @Router			/api/v1/health [get]
 func (h *Handler) HealthCheck(dbClient *mongo.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		err := dbClient.Ping(ctx, readpref.Primary())
 		if err != nil {
