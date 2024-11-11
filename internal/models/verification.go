@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -63,6 +64,31 @@ func (v Verification) LogValue() slog.Value {
 		slog.Int64("finishTime", sanitized.FinishTime),
 		slog.Any("expirationStatus", sanitized.ExpirationStatus),
 	)
+}
+
+// ToOutcome converts a Verification to a VerificationOutcome based on the service configuration
+func (v Verification) ToOutcome(config config.Verification) *VerificationOutcome {
+	var outcome Outcome
+	if (v.Status.Overall != nil && (*v.Status.Overall == OverallApproved)) ||
+		(config.SuspiciousVerificationOutcome == "APPROVED" && *v.Status.Overall == OverallSuspected) {
+		outcome = OutcomeApproved
+	} else {
+		outcome = OutcomeRejected
+	}
+
+	if outcome == OutcomeApproved {
+		if v.ExpirationStatus != nil &&
+			*v.ExpirationStatus == DocumentExpired {
+			outcome = Outcome(config.ExpiredDocumentOutcome)
+		}
+	}
+	return &VerificationOutcome{
+		Final:               v.Final,
+		ClientID:            v.ClientID,
+		IdenfyRef:           v.IdenfyRef,
+		ExpirationThreshold: v.ExpirationStatus,
+		Outcome:             outcome,
+	}
 }
 
 type Platform string
@@ -266,10 +292,11 @@ type ServiceStatus struct {
 }
 
 type VerificationOutcome struct {
-	Final     *bool   `bson:"final"`
-	ClientID  string  `bson:"clientId"`
-	IdenfyRef string  `bson:"idenfyRef"`
-	Outcome   Outcome `bson:"outcome"`
+	Final               *bool                `bson:"final"`
+	ClientID            string               `bson:"clientId"`
+	IdenfyRef           string               `bson:"idenfyRef"`
+	ExpirationThreshold *ExpirationThreshold `bson:"expirationThreshold"`
+	Outcome             Outcome              `bson:"outcome"`
 }
 
 type Outcome string

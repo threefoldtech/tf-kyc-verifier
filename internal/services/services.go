@@ -170,26 +170,7 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 	if verification == nil {
 		return nil, nil
 	}
-	var outcome models.Outcome
-	if (verification.Status.Overall != nil && (*verification.Status.Overall == models.OverallApproved)) ||
-		(s.config.SuspiciousVerificationOutcome == "APPROVED" && *verification.Status.Overall == models.OverallSuspected) {
-		outcome = models.OutcomeApproved
-	} else {
-		outcome = models.OutcomeRejected
-	}
-
-	if outcome == models.OutcomeApproved {
-		if verification.ExpirationStatus != nil &&
-			*verification.ExpirationStatus == models.DocumentExpired {
-			outcome = models.Outcome(s.config.ExpiredDocumentOutcome)
-		}
-	}
-	return &models.VerificationOutcome{
-		Final:     verification.Final,
-		ClientID:  clientID,
-		IdenfyRef: verification.IdenfyRef,
-		Outcome:   outcome,
-	}, nil
+	return verification.ToOutcome(*s.config), nil
 }
 
 func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID uint32) (*models.VerificationOutcome, error) {
@@ -287,5 +268,5 @@ func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool,
 	if verification == nil {
 		return false, nil
 	}
-	return verification.Status.Overall != nil && (*verification.Status.Overall == models.OverallApproved || (s.config.SuspiciousVerificationOutcome == "APPROVED" && *verification.Status.Overall == models.OverallSuspected)), nil
+	return verification.ToOutcome(*s.config).Outcome == models.OutcomeApproved, nil
 }

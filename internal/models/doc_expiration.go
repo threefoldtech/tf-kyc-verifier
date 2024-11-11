@@ -10,8 +10,8 @@ const (
 )
 
 type DocExpirationNotification struct {
-	ScanRef             string              `json:"scanRef" bson:"scanRef"`
-	ClientID            string              `json:"clientId" bson:"clientId"`
-	ExpirationThreshold ExpirationThreshold `json:"expirationThreshold" bson:"expirationThreshold"`
-	DocumentExpiration  string              `json:"documentExpiration" bson:"documentExpiration"`
+	ScanRef             string              `json:"scanRef"`
+	ClientID            string              `json:"clientId"`
+	ExpirationThreshold ExpirationThreshold `json:"expirationThreshold"`
+	DocumentExpiration  string              `json:"documentExpiration"`
 }
