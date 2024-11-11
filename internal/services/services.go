@@ -272,17 +272,16 @@ func (s *KYCService) verifyIdenfyCallbackSignature(ctx context.Context, body []b
 }
 
 func (s *KYCService) processClientID(clientID string) (string, error) {
-	clientIDParts := strings.Split(clientID, ":")
-	if len(clientIDParts) < 2 {
-		s.logger.Error("clientID have no network suffix", "clientID", clientID)
-		return "", errors.NewInternalError("invalid clientID", nil)
+	strippedClientID, actualSuffix, found := strings.Cut(clientID, ":")
+	// defensively check if the clientID has a network suffix that is different from the expected one
+	if found {
+		if actualSuffix != s.IdenfySuffix {
+			s.logger.Warn("clientID has different network suffix", "clientID", clientID, "expectedSuffix", s.IdenfySuffix, "actualSuffix", actualSuffix)
+		}
+	} else {
+		s.logger.Warn("clientID have no network suffix", "clientID", clientID)
 	}
-	networkSuffix := clientIDParts[len(clientIDParts)-1]
-	if networkSuffix != s.IdenfySuffix {
-		s.logger.Error("clientID has different network suffix", "clientID", clientID, "expectedSuffix", s.IdenfySuffix, "actualSuffix", networkSuffix)
-		return "", errors.NewInternalError("invalid clientID", nil)
-	}
-	return clientIDParts[0], nil
+	return strippedClientID, nil
 }
 
 func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool, error) {
