@@ -26,6 +26,18 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/services"
 )
 
+const (
+	// Authentication headers
+	HeaderClientID = "X-Client-ID"
+
+	// iDenfy webhook headers
+	HeaderIdenfySignature = "Idenfy-Signature"
+
+	// Query parameters
+	QueryParamClientID = "client_id"
+	QueryParamTwinID   = "twin_id"
+)
+
 type Handler struct {
 	kycService *services.KYCService
 	config     *config.Config
@@ -64,7 +76,7 @@ func NewHandler(kycService *services.KYCService, config *config.Config, logger *
 // @Router			/api/v1/token [post]
 func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get("X-Client-ID")
+		clientID := c.Get(HeaderClientID)
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
 		token, isNewToken, err := h.kycService.GetOrCreateVerificationToken(ctx, clientID)
@@ -95,7 +107,7 @@ func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 // @Router			/api/v1/data [get]
 func (h *Handler) GetVerificationData() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get("X-Client-ID")
+		clientID := c.Get(HeaderClientID)
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
 		verification, err := h.kycService.GetVerificationData(ctx, clientID)
@@ -125,8 +137,8 @@ func (h *Handler) GetVerificationData() fiber.Handler {
 // @Router			/api/v1/status [get]
 func (h *Handler) GetVerificationStatus() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Query("client_id")
-		twinID := c.Query("twin_id")
+		clientID := c.Query(QueryParamClientID)
+		twinID := c.Query(QueryParamTwinID)
 
 		if clientID == "" && twinID == "" {
 			h.logger.Warn("Bad request: missing client_id and twin_id")
@@ -167,7 +179,7 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 			"body", string(c.Body()),
 			"headers", &c.Request().Header,
 		)
-		sigHeader := c.Get("Idenfy-Signature")
+		sigHeader := c.Get(HeaderIdenfySignature)
 		if len(sigHeader) < 1 {
 			h.logger.Error("Missing signature header", "headers", string(c.Request().Header.Header()))
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("no signature provided"))
@@ -203,7 +215,7 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 		)
 
 		// Verify signature
-		sigHeader := c.Get("Idenfy-Signature")
+		sigHeader := c.Get(HeaderIdenfySignature)
 		if len(sigHeader) < 1 {
 			h.logger.Error("Missing signature header", "headers", string(c.Request().Header.Header()))
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("missing signature header"))
