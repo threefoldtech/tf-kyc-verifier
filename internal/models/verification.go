@@ -1,6 +1,7 @@
 package models
 
 import (
+	"log/slog"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -35,6 +36,33 @@ type Verification struct {
 	ManualAddress         string               `bson:"manualAddress" json:"manualAddress,omitempty"`
 	ManualAddressMatch    *bool                `bson:"manualAddressMatch" json:"manualAddressMatch,omitempty"`
 	ExpirationStatus      *ExpirationThreshold `bson:"expirationStatus,omitempty" json:"expirationStatus,omitempty"`
+}
+
+// implements slog.LogValuer to control how Verification is logged
+func (v Verification) LogValue() slog.Value {
+	// Create a copy without sensitive data
+	sanitized := &Verification{
+		Final:            v.Final,
+		Platform:         v.Platform,
+		Status:           v.Status,
+		IdenfyRef:        v.IdenfyRef,
+		ClientID:         v.ClientID,
+		StartTime:        v.StartTime,
+		FinishTime:       v.FinishTime,
+		ExpirationStatus: v.ExpirationStatus,
+	}
+
+	// Convert to a map for logging
+	return slog.GroupValue(
+		slog.Any("final", sanitized.Final),
+		slog.String("platform", string(sanitized.Platform)),
+		slog.Any("status", sanitized.Status),
+		slog.String("idenfyRef", sanitized.IdenfyRef),
+		slog.String("clientId", sanitized.ClientID),
+		slog.Int64("startTime", sanitized.StartTime),
+		slog.Int64("finishTime", sanitized.FinishTime),
+		slog.Any("expirationStatus", sanitized.ExpirationStatus),
+	)
 }
 
 type Platform string

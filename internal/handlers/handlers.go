@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -181,7 +182,6 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 func (h *Handler) ProcessVerificationResult() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		h.logger.Debug("Received verification update",
-			"body", string(c.Body()),
 			"headers", &c.Request().Header,
 		)
 		sigHeader := c.Get(HeaderIdenfySignature)
@@ -195,7 +195,6 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 			h.logger.Error("Error decoding verification update", "error", err)
 			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
 		}
-		h.logger.Debug("Verification update after decoding", "result", result)
 		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 		defer cancel()
 		if err := h.kycService.ProcessVerificationResult(ctx, body, sigHeader, result); err != nil {

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -228,7 +227,7 @@ func (s *KYCService) ProcessVerificationResult(ctx context.Context, body []byte,
 			return errors.NewInternalError("saving verification to database", err)
 		}
 	}
-	s.logger.Debug("Verification result processed successfully", "result", result)
+	s.logger.Info("Verification result processed successfully", "result", result)
 	return nil
 }
 
