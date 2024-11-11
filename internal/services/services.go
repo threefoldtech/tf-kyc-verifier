@@ -193,14 +193,9 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 	}, nil
 }
 
-func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID string) (*models.VerificationOutcome, error) {
+func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID uint32) (*models.VerificationOutcome, error) {
 	// get the address from the twinID
-	twinIDUint64, err := strconv.ParseUint(twinID, 10, 32)
-	if err != nil {
-		s.logger.Error("Error parsing twinID", "twinID", twinID, "error", err)
-		return nil, errors.NewInternalError("parsing twinID", err)
-	}
-	address, err := s.substrate.GetAddressByTwinID(uint32(twinIDUint64))
+	address, err := s.substrate.GetAddressByTwinID(twinID)
 	if err != nil {
 		s.logger.Error("Error getting address from twinID", "twinID", twinID, "error", err)
 		return nil, errors.NewExternalError("looking up twinID address from TFChain", err)

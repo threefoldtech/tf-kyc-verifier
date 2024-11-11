@@ -151,7 +151,12 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 		if clientID != "" {
 			verification, err = h.kycService.GetVerificationStatus(ctx, clientID)
 		} else {
-			verification, err = h.kycService.GetVerificationStatusByTwinID(ctx, twinID)
+			twinIDUint64, parseErr := strconv.ParseUint(twinID, 10, 32)
+			if parseErr != nil {
+				h.logger.Error("Error parsing twinID", "twinID", twinID, "error", parseErr)
+				return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("invalid twinID"))
+			}
+			verification, err = h.kycService.GetVerificationStatusByTwinID(ctx, uint32(twinIDUint64))
 		}
 		if err != nil {
 			h.logger.Error("Failed to get verification status", "clientID", clientID, "twinID", twinID, "error", err)
