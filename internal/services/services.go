@@ -249,12 +249,10 @@ func (s *KYCService) verifyIdenfyCallbackSignature(ctx context.Context, body []b
 func (s *KYCService) processClientID(clientID string) (string, error) {
 	strippedClientID, actualSuffix, found := strings.Cut(clientID, ":")
 	// defensively check if the clientID has a network suffix that is different from the expected one
-	if found {
-		if actualSuffix != s.IdenfySuffix {
-			s.logger.Warn("clientID has different network suffix", "clientID", clientID, "expectedSuffix", s.IdenfySuffix, "actualSuffix", actualSuffix)
-		}
-	} else {
+	if !found {
 		s.logger.Warn("clientID have no network suffix", "clientID", clientID)
+	} else if actualSuffix != s.IdenfySuffix {
+		s.logger.Warn("clientID has different network suffix", "clientID", clientID, "expectedSuffix", s.IdenfySuffix, "actualSuffix", actualSuffix)
 	}
 	return strippedClientID, nil
 }
