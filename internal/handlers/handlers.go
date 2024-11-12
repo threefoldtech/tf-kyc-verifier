@@ -9,11 +9,10 @@ This layer is responsible for handling the requests and responses, in more detai
 package handlers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,6 +25,20 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/responses"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/services"
+)
+
+const (
+	// Authentication headers
+	HeaderClientID = "X-Client-ID"
+
+	// iDenfy webhook headers
+	HeaderIdenfySignature = "Idenfy-Signature"
+
+	// Query parameters
+	QueryParamClientID = "client_id"
+	QueryParamTwinID   = "twin_id"
+
+	HandlerTimeout = 5 * time.Second
 )
 
 type Handler struct {
@@ -66,8 +79,8 @@ func NewHandler(kycService *services.KYCService, config *config.Config, logger *
 // @Router			/api/v1/token [post]
 func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get("X-Client-ID")
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		clientID := c.Get(HeaderClientID)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		token, isNewToken, err := h.kycService.GetOrCreateVerificationToken(ctx, clientID)
 		if err != nil {
@@ -97,8 +110,8 @@ func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 // @Router			/api/v1/data [get]
 func (h *Handler) GetVerificationData() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get("X-Client-ID")
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		clientID := c.Get(HeaderClientID)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		verification, err := h.kycService.GetVerificationData(ctx, clientID)
 		if err != nil {
@@ -127,8 +140,8 @@ func (h *Handler) GetVerificationData() fiber.Handler {
 // @Router			/api/v1/status [get]
 func (h *Handler) GetVerificationStatus() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Query("client_id")
-		twinID := c.Query("twin_id")
+		clientID := c.Query(QueryParamClientID)
+		twinID := c.Query(QueryParamTwinID)
 
 		if clientID == "" && twinID == "" {
 			h.logger.Warn("Bad request: missing client_id and twin_id")
@@ -136,12 +149,17 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 		}
 		var verification *models.VerificationOutcome
 		var err error
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		if clientID != "" {
 			verification, err = h.kycService.GetVerificationStatus(ctx, clientID)
 		} else {
-			verification, err = h.kycService.GetVerificationStatusByTwinID(ctx, twinID)
+			twinIDUint64, parseErr := strconv.ParseUint(twinID, 10, 32)
+			if parseErr != nil {
+				h.logger.Error("Error parsing twinID", "twinID", twinID, "error", parseErr)
+				return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("invalid twinID"))
+			}
+			verification, err = h.kycService.GetVerificationStatusByTwinID(ctx, uint32(twinIDUint64))
 		}
 		if err != nil {
 			h.logger.Error("Failed to get verification status", "clientID", clientID, "twinID", twinID, "error", err)
@@ -166,26 +184,22 @@ func (h *Handler) GetVerificationStatus() fiber.Handler {
 func (h *Handler) ProcessVerificationResult() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		h.logger.Debug("Received verification update",
-			"body", string(c.Body()),
 			"headers", &c.Request().Header,
 		)
-		sigHeader := c.Get("Idenfy-Signature")
+		sigHeader := c.Get(HeaderIdenfySignature)
 		if len(sigHeader) < 1 {
+			h.logger.Error("Missing signature header", "headers", string(c.Request().Header.Header()))
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("no signature provided"))
 		}
 		body := c.Body()
 		var result models.Verification
-		decoder := json.NewDecoder(bytes.NewReader(body))
-		err := decoder.Decode(&result)
-		if err != nil {
+		if err := c.BodyParser(&result); err != nil {
 			h.logger.Error("Error decoding verification update", "error", err)
 			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
 		}
-		h.logger.Debug("Verification update after decoding", "result", result)
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
-		err = h.kycService.ProcessVerificationResult(ctx, body, sigHeader, result)
-		if err != nil {
+		if err := h.kycService.ProcessVerificationResult(ctx, body, sigHeader, result); err != nil {
 			return HandleError(c, err)
 		}
 		return responses.RespondWithData(c, fiber.StatusOK, nil)
@@ -201,9 +215,30 @@ func (h *Handler) ProcessVerificationResult() fiber.Handler {
 // @Router			/webhooks/idenfy/id-expiration [post]
 func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// TODO: implement
-		h.logger.Error("Received ID expiration notification but not implemented")
-		return c.SendStatus(fiber.StatusNotImplemented)
+		h.logger.Debug("Received ID expiration update",
+			"body", string(c.Body()),
+			"headers", &c.Request().Header,
+		)
+
+		// Verify signature
+		sigHeader := c.Get(HeaderIdenfySignature)
+		if len(sigHeader) < 1 {
+			h.logger.Error("Missing signature header", "headers", string(c.Request().Header.Header()))
+			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("missing signature header"))
+		}
+		body := c.Body()
+		var notification models.DocExpirationNotification
+		if err := c.BodyParser(&notification); err != nil {
+			h.logger.Error("Error decoding verification update", "error", err)
+			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("invalid request body"))
+		}
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
+		defer cancel()
+		if err := h.kycService.ProcessDocExpirationNotification(ctx, body, sigHeader, notification); err != nil {
+			return HandleError(c, err)
+		}
+
+		return c.SendStatus(fiber.StatusOK)
 	}
 }
 
@@ -214,7 +249,7 @@ func (h *Handler) ProcessDocExpirationNotification() fiber.Handler {
 // @Router			/api/v1/health [get]
 func (h *Handler) HealthCheck(dbClient *mongo.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		err := dbClient.Ping(ctx, readpref.Primary())
 		if err != nil {

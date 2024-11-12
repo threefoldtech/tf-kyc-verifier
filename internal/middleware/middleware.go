@@ -17,12 +17,19 @@ import (
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 )
 
+const (
+	// Authentication headers
+	HeaderClientID  = "X-Client-ID"
+	HeaderChallenge = "X-Challenge"
+	HeaderSignature = "X-Signature"
+)
+
 // AuthMiddleware is a middleware that validates the authentication credentials
 func AuthMiddleware(config config.Challenge) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get("X-Client-ID")
-		signature := c.Get("X-Signature")
-		challenge := c.Get("X-Challenge")
+		clientID := c.Get(HeaderClientID)
+		signature := c.Get(HeaderSignature)
+		challenge := c.Get(HeaderChallenge)
 
 		if clientID == "" || signature == "" || challenge == "" {
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("missing authentication credentials"))

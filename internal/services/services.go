@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -168,32 +167,15 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 		s.logger.Error("Error getting verification from database", "clientID", clientID, "error", err)
 		return nil, errors.NewInternalError("getting verification from database", err)
 	}
-	var outcome models.Outcome
-	if verification != nil {
-		if verification.Status.Overall != nil && *verification.Status.Overall == models.OverallApproved || (s.config.SuspiciousVerificationOutcome == "APPROVED" && *verification.Status.Overall == models.OverallSuspected) {
-			outcome = models.OutcomeApproved
-		} else {
-			outcome = models.OutcomeRejected
-		}
-	} else {
+	if verification == nil {
 		return nil, nil
 	}
-	return &models.VerificationOutcome{
-		Final:     verification.Final,
-		ClientID:  clientID,
-		IdenfyRef: verification.IdenfyRef,
-		Outcome:   outcome,
-	}, nil
+	return verification.ToOutcome(*s.config), nil
 }
 
-func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID string) (*models.VerificationOutcome, error) {
+func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID uint32) (*models.VerificationOutcome, error) {
 	// get the address from the twinID
-	twinIDUint64, err := strconv.ParseUint(twinID, 10, 32)
-	if err != nil {
-		s.logger.Error("Error parsing twinID", "twinID", twinID, "error", err)
-		return nil, errors.NewInternalError("parsing twinID", err)
-	}
-	address, err := s.substrate.GetAddressByTwinID(uint32(twinIDUint64))
+	address, err := s.substrate.GetAddressByTwinID(twinID)
 	if err != nil {
 		s.logger.Error("Error getting address from twinID", "twinID", twinID, "error", err)
 		return nil, errors.NewExternalError("looking up twinID address from TFChain", err)
@@ -202,23 +184,16 @@ func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID s
 }
 
 func (s *KYCService) ProcessVerificationResult(ctx context.Context, body []byte, sigHeader string, result models.Verification) error {
-	err := s.idenfy.VerifyCallbackSignature(ctx, body, sigHeader)
+	err := s.verifyIdenfyCallbackSignature(ctx, body, sigHeader)
 	if err != nil {
-		s.logger.Error("Error verifying callback signature", "sigHeader", sigHeader, "error", err)
-		return errors.NewAuthorizationError("verifying callback signature", err)
+		return err
 	}
-	clientIDParts := strings.Split(result.ClientID, ":")
-	if len(clientIDParts) < 2 {
-		s.logger.Error("clientID have no network suffix", "clientID", result.ClientID)
-		return errors.NewInternalError("invalid clientID", nil)
-	}
-	networkSuffix := clientIDParts[len(clientIDParts)-1]
-	if networkSuffix != s.IdenfySuffix {
-		s.logger.Error("clientID has different network suffix", "clientID", result.ClientID, "expectedSuffix", s.IdenfySuffix, "actualSuffix", networkSuffix)
-		return errors.NewInternalError("invalid clientID", nil)
+	clientID, err := s.processClientID(result.ClientID)
+	if err != nil {
+		return err
 	}
 	// delete the token with the same clientID and same scanRef
-	result.ClientID = clientIDParts[0]
+	result.ClientID = clientID
 
 	err = s.tokenRepo.DeleteToken(ctx, result.ClientID, result.IdenfyRef)
 	if err != nil {
@@ -233,12 +208,53 @@ func (s *KYCService) ProcessVerificationResult(ctx context.Context, body []byte,
 			return errors.NewInternalError("saving verification to database", err)
 		}
 	}
-	s.logger.Debug("Verification result processed successfully", "result", result)
+	s.logger.Info("Verification result processed successfully", "result", result)
 	return nil
 }
 
-func (s *KYCService) ProcessDocExpirationNotification(ctx context.Context, clientID string) error {
+func (s *KYCService) ProcessDocExpirationNotification(ctx context.Context, body []byte, sigHeader string, notification models.DocExpirationNotification) error {
+	err := s.verifyIdenfyCallbackSignature(ctx, body, sigHeader)
+	if err != nil {
+		return err
+	}
+	clientID, err := s.processClientID(notification.ClientID)
+	if err != nil {
+		return err
+	}
+	// Update verification that matches the same clientID and scanref with expiration status
+	err = s.verificationRepo.UpdateExpirationStatus(ctx, clientID, notification.ScanRef, notification.ExpirationThreshold)
+	if err != nil {
+		s.logger.Error("Error updating expiration status",
+			"clientID", clientID,
+			"status", notification.ExpirationThreshold,
+			"error", err)
+		return errors.NewInternalError("updating expiration status", err)
+	}
+
+	s.logger.Info("Updated document expiration status",
+		"clientID", clientID,
+		"status", notification.ExpirationThreshold)
 	return nil
+}
+
+func (s *KYCService) verifyIdenfyCallbackSignature(ctx context.Context, body []byte, sigHeader string) error {
+	err := s.idenfy.VerifyCallbackSignature(ctx, body, sigHeader)
+	if err != nil {
+		s.logger.Error("Error verifying callback signature", "sigHeader", sigHeader, "error", err)
+		return errors.NewAuthorizationError("verifying callback signature", err)
+	}
+	return nil
+}
+
+func (s *KYCService) processClientID(clientID string) (string, error) {
+	strippedClientID, actualSuffix, found := strings.Cut(clientID, ":")
+	// defensively check if the clientID has a network suffix that is different from the expected one
+	if !found {
+		s.logger.Warn("clientID have no network suffix", "clientID", clientID)
+	} else if actualSuffix != s.IdenfySuffix {
+		s.logger.Warn("clientID has different network suffix", "clientID", clientID, "expectedSuffix", s.IdenfySuffix, "actualSuffix", actualSuffix)
+	}
+	return strippedClientID, nil
 }
 
 func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool, error) {
@@ -250,5 +266,5 @@ func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool,
 	if verification == nil {
 		return false, nil
 	}
-	return verification.Status.Overall != nil && (*verification.Status.Overall == models.OverallApproved || (s.config.SuspiciousVerificationOutcome == "APPROVED" && *verification.Status.Overall == models.OverallSuspected)), nil
+	return verification.ToOutcome(*s.config).Outcome == models.OutcomeApproved, nil
 }

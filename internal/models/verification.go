@@ -1,39 +1,98 @@
 package models
 
 import (
+	"log/slog"
 	"time"
 
+	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Verification struct {
-	ID                    primitive.ObjectID `bson:"_id,omitempty" json:"-"`
-	CreatedAt             time.Time          `bson:"createdAt" json:"-"`
-	Final                 *bool              `bson:"final" json:"final"`                     // required
-	Platform              Platform           `bson:"platform" json:"platform"`               // required
-	Status                Status             `bson:"status" json:"status"`                   // required
-	Data                  PersonData         `bson:"data" json:"data"`                       // required
-	FileUrls              map[string]string  `bson:"fileUrls" json:"fileUrls"`               // required
-	IdenfyRef             string             `bson:"scanRef" json:"scanRef"`                 // required
-	ClientID              string             `bson:"clientId" json:"clientId"`               // required
-	StartTime             int64              `bson:"startTime" json:"startTime"`             // required
-	FinishTime            int64              `bson:"finishTime" json:"finishTime"`           // required
-	ClientIP              string             `bson:"clientIp" json:"clientIp"`               // required
-	ClientIPCountry       string             `bson:"clientIpCountry" json:"clientIpCountry"` // required
-	ClientLocation        string             `bson:"clientLocation" json:"clientLocation"`   // required
-	CompanyID             string             `bson:"companyId" json:"companyId"`             // required
-	BeneficiaryID         string             `bson:"beneficiaryId" json:"beneficiaryId"`     // required
-	RegistryCenterCheck   interface{}        `json:"registryCenterCheck,omitempty"`
-	AddressVerification   interface{}        `json:"addressVerification,omitempty"`
-	QuestionnaireAnswers  interface{}        `json:"questionnaireAnswers,omitempty"`
-	AdditionalSteps       map[string]string  `json:"additionalSteps,omitempty"`
-	UtilityData           []string           `json:"utilityData,omitempty"`
-	AdditionalStepPdfUrls map[string]string  `json:"additionalStepPdfUrls,omitempty"`
-	AML                   []AMLCheck         `bson:"AML" json:"AML,omitempty"`
-	LID                   []LID              `bson:"LID" json:"LID,omitempty"`
-	ExternalRef           string             `bson:"externalRef" json:"externalRef,omitempty"`
-	ManualAddress         string             `bson:"manualAddress" json:"manualAddress,omitempty"`
-	ManualAddressMatch    *bool              `bson:"manualAddressMatch" json:"manualAddressMatch,omitempty"`
+	ID                    primitive.ObjectID   `bson:"_id,omitempty" json:"-"`
+	CreatedAt             time.Time            `bson:"createdAt" json:"-"`
+	Final                 *bool                `bson:"final" json:"final"`                     // required
+	Platform              Platform             `bson:"platform" json:"platform"`               // required
+	Status                Status               `bson:"status" json:"status"`                   // required
+	Data                  PersonData           `bson:"data" json:"data"`                       // required
+	FileUrls              map[string]string    `bson:"fileUrls" json:"fileUrls"`               // required
+	IdenfyRef             string               `bson:"scanRef" json:"scanRef"`                 // required
+	ClientID              string               `bson:"clientId" json:"clientId"`               // required
+	StartTime             int64                `bson:"startTime" json:"startTime"`             // required
+	FinishTime            int64                `bson:"finishTime" json:"finishTime"`           // required
+	ClientIP              string               `bson:"clientIp" json:"clientIp"`               // required
+	ClientIPCountry       string               `bson:"clientIpCountry" json:"clientIpCountry"` // required
+	ClientLocation        string               `bson:"clientLocation" json:"clientLocation"`   // required
+	CompanyID             string               `bson:"companyId" json:"companyId"`             // required
+	BeneficiaryID         string               `bson:"beneficiaryId" json:"beneficiaryId"`     // required
+	RegistryCenterCheck   interface{}          `json:"registryCenterCheck,omitempty"`
+	AddressVerification   interface{}          `json:"addressVerification,omitempty"`
+	QuestionnaireAnswers  interface{}          `json:"questionnaireAnswers,omitempty"`
+	AdditionalSteps       map[string]string    `json:"additionalSteps,omitempty"`
+	UtilityData           []string             `json:"utilityData,omitempty"`
+	AdditionalStepPdfUrls map[string]string    `json:"additionalStepPdfUrls,omitempty"`
+	AML                   []AMLCheck           `bson:"AML" json:"AML,omitempty"`
+	LID                   []LID                `bson:"LID" json:"LID,omitempty"`
+	ExternalRef           string               `bson:"externalRef" json:"externalRef,omitempty"`
+	ManualAddress         string               `bson:"manualAddress" json:"manualAddress,omitempty"`
+	ManualAddressMatch    *bool                `bson:"manualAddressMatch" json:"manualAddressMatch,omitempty"`
+	ExpirationStatus      *ExpirationThreshold `bson:"expirationStatus,omitempty" json:"expirationStatus,omitempty"`
+}
+
+// implements slog.LogValuer to control how Verification is logged
+func (v Verification) LogValue() slog.Value {
+	// Create a copy without sensitive data
+	sanitized := &Verification{
+		Final:            v.Final,
+		Platform:         v.Platform,
+		Status:           v.Status,
+		IdenfyRef:        v.IdenfyRef,
+		ClientID:         v.ClientID,
+		StartTime:        v.StartTime,
+		FinishTime:       v.FinishTime,
+		ExpirationStatus: v.ExpirationStatus,
+	}
+
+	// Convert to a map for logging
+	return slog.GroupValue(
+		slog.Any("final", sanitized.Final),
+		slog.String("platform", string(sanitized.Platform)),
+		slog.Any("status", sanitized.Status),
+		slog.String("idenfyRef", sanitized.IdenfyRef),
+		slog.String("clientId", sanitized.ClientID),
+		slog.Int64("startTime", sanitized.StartTime),
+		slog.Int64("finishTime", sanitized.FinishTime),
+		slog.Any("expirationStatus", sanitized.ExpirationStatus),
+	)
+}
+
+// ToOutcome converts a Verification to a VerificationOutcome based on the service configuration
+func (v Verification) ToOutcome(config config.Verification) *VerificationOutcome {
+	outcome := OutcomeRejected
+	// First check if Overall status exists
+	if v.Status.Overall != nil {
+		// Then evaluate if it's either:
+		// 1. Overall status is Approved, or
+		// 2. Overall status is Suspected AND config allows suspicious cases to be approved
+		if *v.Status.Overall == OverallApproved ||
+			(*v.Status.Overall == OverallSuspected && config.SuspiciousVerificationOutcome == "APPROVED") {
+
+			// If either condition is met, set outcome to Approved
+			outcome = OutcomeApproved
+
+			// Finally check if document is expired - this overrides the Approved outcome based on config
+			if v.ExpirationStatus != nil && *v.ExpirationStatus == DocumentExpired {
+				outcome = Outcome(config.ExpiredDocumentOutcome)
+			}
+		}
+	}
+	return &VerificationOutcome{
+		Final:               v.Final,
+		ClientID:            v.ClientID,
+		IdenfyRef:           v.IdenfyRef,
+		ExpirationThreshold: v.ExpirationStatus,
+		Outcome:             outcome,
+	}
 }
 
 type Platform string
@@ -237,10 +296,11 @@ type ServiceStatus struct {
 }
 
 type VerificationOutcome struct {
-	Final     *bool   `bson:"final"`
-	ClientID  string  `bson:"clientId"`
-	IdenfyRef string  `bson:"idenfyRef"`
-	Outcome   Outcome `bson:"outcome"`
+	Final               *bool                `bson:"final"`
+	ClientID            string               `bson:"clientId"`
+	IdenfyRef           string               `bson:"idenfyRef"`
+	ExpirationThreshold *ExpirationThreshold `bson:"expirationThreshold"`
+	Outcome             Outcome              `bson:"outcome"`
 }
 
 type Outcome string

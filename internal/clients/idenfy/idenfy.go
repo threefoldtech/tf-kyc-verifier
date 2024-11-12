@@ -158,5 +158,6 @@ func (c *Idenfy) createVerificationSessionRequestBody(clientID string, devMode b
 		RequestBody.ExpiryTime = TokenExpiryDevModeSeconds
 		RequestBody.DummyStatus = "APPROVED"
 	}
+	c.logger.Debug("Creating verification session", "request", RequestBody)
 	return RequestBody
 }

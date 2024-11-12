@@ -18,6 +18,7 @@ type TokenRepository interface {
 type VerificationRepository interface {
 	SaveVerification(ctx context.Context, verification *models.Verification) error
 	GetVerification(ctx context.Context, clientID string) (*models.Verification, error)
+	UpdateExpirationStatus(ctx context.Context, clientID string, scanRef string, status models.ExpirationThreshold) error
 }
 
 func NewMongoClient(ctx context.Context, mongoURI string) (*mongo.Client, error) {
