@@ -68,18 +68,22 @@ func (v Verification) LogValue() slog.Value {
 
 // ToOutcome converts a Verification to a VerificationOutcome based on the service configuration
 func (v Verification) ToOutcome(config config.Verification) *VerificationOutcome {
-	var outcome Outcome
-	if (v.Status.Overall != nil && (*v.Status.Overall == OverallApproved)) ||
-		(config.SuspiciousVerificationOutcome == "APPROVED" && *v.Status.Overall == OverallSuspected) {
-		outcome = OutcomeApproved
-	} else {
-		outcome = OutcomeRejected
-	}
+	outcome := OutcomeRejected
+	// First check if Overall status exists
+	if v.Status.Overall != nil {
+		// Then evaluate if it's either:
+		// 1. Overall status is Approved, or
+		// 2. Overall status is Suspected AND config allows suspicious cases to be approved
+		if *v.Status.Overall == OverallApproved ||
+			(*v.Status.Overall == OverallSuspected && config.SuspiciousVerificationOutcome == "APPROVED") {
 
-	if outcome == OutcomeApproved {
-		if v.ExpirationStatus != nil &&
-			*v.ExpirationStatus == DocumentExpired {
-			outcome = Outcome(config.ExpiredDocumentOutcome)
+			// If either condition is met, set outcome to Approved
+			outcome = OutcomeApproved
+
+			// Finally check if document is expired - this overrides the Approved outcome based on config
+			if v.ExpirationStatus != nil && *v.ExpirationStatus == DocumentExpired {
+				outcome = Outcome(config.ExpiredDocumentOutcome)
+			}
 		}
 	}
 	return &VerificationOutcome{
