@@ -166,6 +166,9 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 			Outcome:   models.OutcomeApproved,
 		}, nil
 	}
+	if s.config.AlwaysVerifiedIDsOnly {
+		return nil, nil
+	}
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error getting verification from database", "clientID", clientID, "error", err)
