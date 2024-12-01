@@ -320,6 +320,8 @@ func getStatusCode(errorType errors.ErrorType) int {
 		return fiber.StatusServiceUnavailable
 	case errors.ErrorTypeNotSufficientBalance:
 		return fiber.StatusPaymentRequired
+	case errors.ErrorTypeForbidden:
+		return fiber.StatusForbidden
 	default:
 		return fiber.StatusInternalServerError
 	}

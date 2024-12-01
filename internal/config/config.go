@@ -84,6 +84,7 @@ type Verification struct {
 	ExpiredDocumentOutcome        string   `env:"VERIFICATION_EXPIRED_DOCUMENT_OUTCOME" env-default:"REJECTED"`
 	MinBalanceToVerifyAccount     uint64   `env:"VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT" env-default:"10000000"`
 	AlwaysVerifiedIDs             []string `env:"VERIFICATION_ALWAYS_VERIFIED_IDS" env-separator:","`
+	AlwaysVerifiedIDsOnly         bool     `env:"VERIFICATION_ALWAYS_VERIFIED_IDS_ONLY" env-default:"false"`
 }
 type IPLimiter struct {
 	MaxTokenRequests uint `env:"IP_LIMITER_MAX_TOKEN_REQUESTS" env-default:"4"`
@@ -155,6 +156,10 @@ func (c *Config) Validate() error {
 	// ExpiredDocumentOutcome should be either APPROVED or REJECTED
 	if !slices.Contains([]string{"APPROVED", "REJECTED"}, c.Verification.ExpiredDocumentOutcome) {
 		return errors.New("invalid ExpiredDocumentOutcome. should be either APPROVED or REJECTED")
+	}
+	// AlwaysVerifiedIDsOnly cannot be true if the AlwaysVerifiedIDs list is empty
+	if c.Verification.AlwaysVerifiedIDsOnly && len(c.Verification.AlwaysVerifiedIDs) == 0 {
+		return errors.New("AlwaysVerifiedIDsOnly cannot be true if the AlwaysVerifiedIDs list is empty. Either set AlwaysVerifiedIDsOnly to false, or add at least one allowed ID to the AlwaysVerifiedIDs list")
 	}
 	// MinBalanceToVerifyAccount
 	if c.Verification.MinBalanceToVerifyAccount < 20000000 {

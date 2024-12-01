@@ -13,6 +13,7 @@ const (
 	// Error types
 	ErrorTypeValidation           ErrorType = "VALIDATION_ERROR"
 	ErrorTypeAuthorization        ErrorType = "AUTHORIZATION_ERROR"
+	ErrorTypeForbidden            ErrorType = "FORBIDDEN"
 	ErrorTypeNotFound             ErrorType = "NOT_FOUND"
 	ErrorTypeConflict             ErrorType = "CONFLICT"
 	ErrorTypeInternal             ErrorType = "INTERNAL_ERROR"
@@ -86,6 +87,14 @@ func NewExternalError(msg string, err error) *ServiceError {
 func NewNotSufficientBalanceError(msg string, err error) *ServiceError {
 	return &ServiceError{
 		Type: ErrorTypeNotSufficientBalance,
+		Msg:  msg,
+		Err:  err,
+	}
+}
+
+func NewForbiddenError(msg string, err error) *ServiceError {
+	return &ServiceError{
+		Type: ErrorTypeForbidden,
 		Msg:  msg,
 		Err:  err,
 	}
