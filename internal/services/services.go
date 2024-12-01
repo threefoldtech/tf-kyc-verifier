@@ -74,7 +74,8 @@ func (s *KYCService) GetOrCreateVerificationToken(ctx context.Context, clientID 
 		return nil, false, errors.NewConflictError("user already verified", nil)
 	}
 	if s.config.AlwaysVerifiedIDsOnly {
-		return nil, false, errors.NewForbiddenError("You don’t have permission to access the KYC service while AlwaysVerifiedIDsOnly mode is active. Please contact support.", nil)
+		// If AlwaysVerifiedIDsOnly mode is active, KYC token creation is disabled on this network.
+		return nil, false, errors.NewForbiddenError("KYC is disabled while AlwaysVerifiedIDsOnly mode is active", nil)
 	}
 	token, err_ := s.tokenRepo.GetToken(ctx, clientID)
 	if err_ != nil {
