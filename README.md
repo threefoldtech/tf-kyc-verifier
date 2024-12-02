@@ -72,6 +72,7 @@ The application uses environment variables for configuration. Here's a list of a
 - `VERIFICATION_EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: "REJECTED")
 - `VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance in unitTFT required to verify an account (default: 10000000)
 - `VERIFICATION_ALWAYS_VERIFIED_IDS`: Comma-separated list of TFChain SS58Addresses that are always verified (default: "")
+- `VERIFICATION_ALWAYS_VERIFIED_IDS`: When the AlwaysVerifiedIDsOnly is true, the creation of KYC tokens is disabled on this network (default: false)
 
 ### Rate Limiting
 
@@ -168,6 +169,7 @@ To run the application locally:
     - `400`: Bad request
     - `401`: Unauthorized
     - `402`: Payment required
+    - `403`: Forbidden
     - `409`: Conflict
 
 #### Verification
