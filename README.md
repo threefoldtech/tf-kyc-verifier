@@ -305,7 +305,29 @@ docker run -d -p 8080:8080 --env-file .app.env tf_kyc_verifier
 Most of the normal tools will work, although their usage might be a little convoluted in some cases to ensure they have access to the mongod server. A simple way to ensure this is to use docker exec and run the tool from the same container, similar to the following:
 
 ```bash
-docker exec <mongo_db_container_name> sh -c 'exec mongodump -d <database_name> --archive' > /some/path/on/your/host/all-collections.archive
+#!/bin/bash
+# mongo_backup.sh
+
+# Install Environment file
+source .db.env
+
+docker exec tf_kyc_db mongodump --username $MONGO_INITDB_ROOT_USERNAME  --password $MONGO_INITDB_ROOT_PASSWORD  --authenticationDatabase admin --db tfgrid-kyc-db --archive=mongo.kyc.archive.dump
+docker cp tf_kyc_db:/mongo.kyc.archive.dump mongo.kyc.archive.dump
+```
+
+### Restoring database dump
+
+To restore the previously created backup, you can use a similar script as follows:
+
+```bash
+#!/bin/bash
+# mongo_restore.sh
+
+# Install Environment file
+source .db.env
+
+docker cp mongo.kyc.archive.dump tf_kyc_db:/mongo.kyc.archive.dump
+docker exec tf_kyc_db mongorestore --username $MONGO_INITDB_ROOT_USERNAME  --password $MONGO_INITDB_ROOT_PASSWORD  --authenticationDatabase admin --nsInclude='tfgrid-kyc-db.*' --archive=mongo.kyc.archive.dump
 ```
 
 ## Production
