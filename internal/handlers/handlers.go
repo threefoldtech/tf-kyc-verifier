@@ -73,6 +73,7 @@ func NewHandler(kycService *services.KYCService, config *config.Config, logger *
 // @Failure		400			{object}		object{error=string}
 // @Failure		401			{object}		object{error=string}
 // @Failure		402			{object}		object{error=string}
+// @Failure		403			{object}		object{error=string}
 // @Failure		409			{object}		object{error=string}
 // @Failure		500			{object}		object{error=string}
 // @Failure		503			{object}		object{error=string}
@@ -320,6 +321,8 @@ func getStatusCode(errorType errors.ErrorType) int {
 		return fiber.StatusServiceUnavailable
 	case errors.ErrorTypeNotSufficientBalance:
 		return fiber.StatusPaymentRequired
+	case errors.ErrorTypeForbidden:
+		return fiber.StatusForbidden
 	default:
 		return fiber.StatusInternalServerError
 	}

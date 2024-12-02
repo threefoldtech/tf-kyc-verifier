@@ -68,15 +68,19 @@ func (s *KYCService) GetOrCreateVerificationToken(ctx context.Context, clientID 
 	isVerified, err := s.IsUserVerified(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error checking if user is verified", "clientID", clientID, "error", err)
-		return nil, false, errors.NewInternalError("getting verification status from database", err) // db error
+		return nil, false, errors.NewInternalError("getting verification status from database", err)
 	}
 	if isVerified {
-		return nil, false, errors.NewConflictError("user already verified", nil) // TODO: implement a custom error that can be converted in the handler to a 4xx such 409 status code
+		return nil, false, errors.NewConflictError("user already verified", nil)
+	}
+	if s.config.AlwaysVerifiedIDsOnly {
+		// If AlwaysVerifiedIDsOnly mode is active, KYC token creation is disabled on this network.
+		return nil, false, errors.NewForbiddenError("KYC is disabled while AlwaysVerifiedIDsOnly mode is active", nil)
 	}
 	token, err_ := s.tokenRepo.GetToken(ctx, clientID)
 	if err_ != nil {
 		s.logger.Error("Error getting token from database", "clientID", clientID, "error", err_)
-		return nil, false, errors.NewInternalError("getting token from database", err_) // db error
+		return nil, false, errors.NewInternalError("getting token from database", err_)
 	}
 	// check if token is found and not expired
 	if token != nil {
@@ -161,6 +165,9 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 			IdenfyRef: "",
 			Outcome:   models.OutcomeApproved,
 		}, nil
+	}
+	if s.config.AlwaysVerifiedIDsOnly {
+		return nil, nil
 	}
 	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
 	if err != nil {
