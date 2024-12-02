@@ -129,7 +129,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 To start only mongo-express if core services are already running, run:
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d mongo-express
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mongo-express
 ```
 
 ### Running Locally
