@@ -12,7 +12,7 @@ import (
 )
 
 type WsProviderURLGetter interface {
-	GetWsProviderURL() string
+	GetWsProviderURL() []string
 }
 
 type SubstrateClient interface {
@@ -27,7 +27,8 @@ type Substrate struct {
 }
 
 func New(config WsProviderURLGetter, logger *slog.Logger) (*Substrate, error) {
-	mgr := tfchain.NewManager(config.GetWsProviderURL())
+	urls := config.GetWsProviderURL()
+	mgr := tfchain.NewManager(urls...)
 	api, err := mgr.Substrate()
 	if err != nil {
 		return nil, fmt.Errorf("initializing Substrate client: %w", err)
