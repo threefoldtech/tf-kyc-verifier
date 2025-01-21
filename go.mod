@@ -9,7 +9,7 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/stretchr/testify v1.9.0
 	github.com/swaggo/swag v1.16.3
-	github.com/threefoldtech/tfchain/clients/tfchain-client-go v0.0.0-20241007205731-5e76664a3cc4
+	github.com/threefoldtech/tfchain/clients/tfchain-client-go v0.0.0-20241127100051-77e684bcb1b2
 	github.com/vedhavyas/go-subkey/v2 v2.0.0
 	go.mongodb.org/mongo-driver v1.17.1
 )
