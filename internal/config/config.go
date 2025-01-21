@@ -71,11 +71,11 @@ func (c *Idenfy) GetCallbackSignKey() string {
 }
 
 type TFChain struct {
-	WsProviderURL string `env:"TFCHAIN_WS_PROVIDER_URL" env-default:"wss://tfchain.grid.tf"`
+	WsProviderURL []string `env:"TFCHAIN_WS_PROVIDER_URL" env-default:"wss://tfchain.grid.tf" env-separator:","`
 }
 
 // implement getter for TFChain
-func (c *TFChain) GetWsProviderURL() string {
+func (c *TFChain) GetWsProviderURL() []string {
 	return c.WsProviderURL
 }
 
@@ -137,10 +137,18 @@ func (c *Config) Validate() error {
 	if len(c.Idenfy.CallbackSignKey) < 16 {
 		return errors.New("invalid callbackSignKey. it should be at least 16 characters long")
 	}
-	// WsProviderURL should be valid URL and start with wss://
-	if u, err := url.ParseRequestURI(c.TFChain.WsProviderURL); err != nil || u.Scheme != "wss" {
-		return errors.New("invalid WsProviderURL")
+
+	// WsProviderURL should not be empty
+	if len(c.TFChain.WsProviderURL) == 0 {
+		return errors.New("empty WsProviderURL")
 	}
+	// WsProviderURL should be valid URL and start with wss://
+	for _, substrate_url := range c.TFChain.WsProviderURL {
+		if u, err := url.ParseRequestURI(substrate_url); err != nil || u.Scheme != "wss" {
+			return errors.New("invalid WsProviderURL")
+		}
+	}
+
 	// domain should not be empty and same as domain in CallbackUrl
 	if parsedCallbackUrl.Host != c.Challenge.Domain {
 		return errors.New("invalid Challenge Domain. It should be same as domain in CallbackUrl")
