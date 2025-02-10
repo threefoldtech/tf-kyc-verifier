@@ -246,6 +246,9 @@ func (s *Server) setupRoutes(kycService *services.KYCService, mongoCl *mongo.Cli
 	// Documentation
 	s.app.Get("/docs/*", swagger.HandlerDefault)
 
+	// Metrics
+	s.app.Get("/metrics", handler.GetMetrics())
+
 	return nil
 }
 

@@ -16,12 +16,14 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
 	"github.com/threefoldtech/tf-kyc-verifier/internal/build"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/metrics"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/responses"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/services"
@@ -293,6 +295,10 @@ func (h *Handler) GetServiceVersion() fiber.Handler {
 		response := responses.AppVersionResponse{Version: build.Version}
 		return responses.RespondWithData(c, fiber.StatusOK, response)
 	}
+}
+
+func (h *Handler) GetMetrics() fiber.Handler {
+	return adaptor.HTTPHandler(metrics.GetInstance().GetMetrics())
 }
 
 func HandleError(c *fiber.Ctx, err error) error {
