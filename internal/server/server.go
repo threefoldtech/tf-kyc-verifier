@@ -33,6 +33,7 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/clients/substrate"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/metrics"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/middleware"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/repository"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/services"
@@ -75,6 +76,11 @@ func New(config *config.Config, srvLogger *slog.Logger) (*Server, error) {
 		BodyLimit:    REQUETS_BODY_LIMIT,
 	})
 
+	err:=metrics.GetInstance().Register()
+	if err != nil {
+		return nil, fmt.Errorf("registering metrics: %w", err)
+	}
+	
 	// Initialize core components
 	if err := server.initializeCore(ctx); err != nil {
 		return nil, fmt.Errorf("initializing core components: %w", err)
@@ -164,6 +170,7 @@ func (s *Server) setupMiddleware() error {
 	s.app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 	}))
+	s.app.Use(middleware.MetricsMiddleware(metrics.GetInstance()))
 	s.app.Use(helmet.New())
 
 	if s.config.IPLimiter.MaxTokenRequests > 0 {

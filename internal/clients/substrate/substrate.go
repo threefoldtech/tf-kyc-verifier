@@ -7,7 +7,9 @@ package substrate
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
+	"github.com/threefoldtech/tf-kyc-verifier/internal/metrics"
 	tfchain "github.com/threefoldtech/tfchain/clients/tfchain-client-go"
 )
 
@@ -22,8 +24,9 @@ type SubstrateClient interface {
 }
 
 type Substrate struct {
-	api    *tfchain.Substrate
-	logger *slog.Logger
+	api     *tfchain.Substrate
+	logger  *slog.Logger
+	metrics *metrics.Metrics
 }
 
 func New(config WsProviderURLGetter, logger *slog.Logger) (*Substrate, error) {
@@ -35,8 +38,9 @@ func New(config WsProviderURLGetter, logger *slog.Logger) (*Substrate, error) {
 	}
 
 	return &Substrate{
-		api:    api,
-		logger: logger,
+		api:     api,
+		logger:  logger,
+		metrics: metrics.GetInstance(),
 	}, nil
 }
 
@@ -46,7 +50,9 @@ func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
 		return 0, fmt.Errorf("decoding ss58 address: %w", err)
 	}
 	accountID := tfchain.AccountID(pubkeyBytes)
+	start := time.Now()
 	balance, err := c.api.GetBalance(accountID)
+	c.metrics.SubstrateResponseTime.WithLabelValues("get_balance").Observe(time.Since(start).Seconds())
 	if err != nil {
 		if err.Error() == "account not found" {
 			return 0, nil
@@ -58,7 +64,9 @@ func (c *Substrate) GetAccountBalance(address string) (uint64, error) {
 }
 
 func (c *Substrate) GetAddressByTwinID(twinID uint32) (string, error) {
+	start := time.Now()
 	twin, err := c.api.GetTwin(twinID)
+	c.metrics.SubstrateResponseTime.WithLabelValues("get_twin").Observe(time.Since(start).Seconds())
 	if err != nil {
 		return "", fmt.Errorf("getting twin from tfchain: %w", err)
 	}
@@ -67,11 +75,15 @@ func (c *Substrate) GetAddressByTwinID(twinID uint32) (string, error) {
 
 // get chain name from ws provider url
 func (c *Substrate) GetChainName() (string, error) {
+	start:= time.Now()
 	api, _, err := c.api.GetClient()
+	c.metrics.SubstrateResponseTime.WithLabelValues("get_client").Observe(time.Since(start).Seconds())
 	if err != nil {
 		return "", fmt.Errorf("getting substrate inner client: %w", err)
 	}
+	start = time.Now()
 	chain, err := api.RPC.System.Chain()
+	c.metrics.SubstrateResponseTime.WithLabelValues("get_chain_name").Observe(time.Since(start).Seconds())
 	if err != nil {
 		return "", fmt.Errorf("getting chain name: %w", err)
 	}

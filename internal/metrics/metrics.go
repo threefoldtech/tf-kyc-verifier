@@ -17,13 +17,14 @@ var (
 )
 
 type Metrics struct {
-	HTTPRequestCount         *prometheus.CounterVec
+	HTTPRequestsReceived         *prometheus.CounterVec
 	HTTPRequestLatency       *prometheus.HistogramVec
 	MongoDBOperationsLatency *prometheus.HistogramVec
 	IdenfyResponseTime       *prometheus.HistogramVec
 	SubstrateResponseTime    *prometheus.HistogramVec
 	ServiceUpTime            prometheus.GaugeFunc
 	InternalServerErrorRate  *prometheus.GaugeVec
+	MongoDBOperationsError   *prometheus.GaugeVec
 }
 
 func GetInstance() *Metrics {
@@ -32,7 +33,7 @@ func GetInstance() *Metrics {
 	once.Do(
 		func() {
 			instance = &Metrics{
-				HTTPRequestCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+				HTTPRequestsReceived: prometheus.NewCounterVec(prometheus.CounterOpts{
 					Name: "http_request_count",
 					Help: "Number of HTTP requests",
 				}, []string{"method", "path"}),
@@ -45,7 +46,7 @@ func GetInstance() *Metrics {
 				MongoDBOperationsLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 					Name: "mongodb_operations_latency",
 					Help: "Latency of MongoDB operations",
-				}, []string{"operation"}),
+				}, []string{"operation", "repo"}),
 
 				IdenfyResponseTime: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 					Name: "idenfy_response_time",
@@ -61,13 +62,19 @@ func GetInstance() *Metrics {
 					Name: "service_uptime",
 					Help: "Service uptime",
 				},
-					func() float64 { return float64(startTime - time.Now().Unix()) },
+					func() float64 { return float64(time.Now().Unix() - startTime) },
 				),
 
 				InternalServerErrorRate: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 					Name: "internal_server_error_rate",
 					Help: "Internal server error rate",
 				}, []string{"method", "path"}),
+
+				MongoDBOperationsError: prometheus.NewGaugeVec(
+					prometheus.GaugeOpts{
+						Name: "mongo_db_operations_error",
+						Help: "Operations that gives error and does not succed",
+					}, []string{"operation", "repo"}),
 			}
 		})
 	return instance
@@ -77,7 +84,7 @@ func (m *Metrics) Register() error {
 	registery = prometheus.NewRegistry()
 
 	for _, metric := range []prometheus.Collector{
-		m.HTTPRequestCount,
+		m.HTTPRequestsReceived,
 		m.HTTPRequestLatency,
 		m.MongoDBOperationsLatency,
 		m.IdenfyResponseTime,

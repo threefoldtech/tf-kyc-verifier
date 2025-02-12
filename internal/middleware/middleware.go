@@ -175,14 +175,15 @@ func MetricsMiddleware(metrics *metrics.Metrics) fiber.Handler {
 		method := c.Method()
 
 		err := c.Next()
+		status := c.Response().StatusCode()
 
 		duration := time.Since(start)
 
-		metrics.HTTPRequestCount.WithLabelValues(method, path).Inc()
+		metrics.HTTPRequestsReceived.WithLabelValues(method, path).Inc()
 		metrics.HTTPRequestLatency.WithLabelValues(method, path).Observe(duration.Seconds())
 
-		if err != nil {
-			metrics.InternalServerErrorRate.WithLabelValues(method, path).Add(1)
+		if status == 500 {
+			metrics.InternalServerErrorRate.WithLabelValues(method, path).Inc()
 		}
 		return err
 	}
