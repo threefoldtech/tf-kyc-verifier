@@ -297,6 +297,11 @@ func (h *Handler) GetServiceVersion() fiber.Handler {
 	}
 }
 
+// @Summary		Get Metrics
+// @Description	Returns the registered metrics
+// @Tags			Metrics
+// @Success		200	{object}	object{result=string} "Prometheus metrics"
+// @Router			/metrics [get]
 func (h *Handler) GetMetrics() fiber.Handler {
 	return adaptor.HTTPHandler(metrics.GetInstance().GetMetrics())
 }

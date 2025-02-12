@@ -504,6 +504,20 @@ paths:
       summary: Get Service Version
       tags:
       - Misc
+  /metrics:
+    get:
+      description: Returns the registered metrics
+      responses:
+        "200":
+          description: Prometheus metrics
+          schema:
+            properties:
+              result:
+                type: string
+            type: object
+      summary: Get Metrics
+      tags:
+      - Metrics
   /webhooks/idenfy/id-expiration:
     post:
       consumes:
