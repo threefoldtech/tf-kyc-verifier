@@ -406,6 +406,28 @@ const docTemplate = `{
                 }
             }
         },
+        "/metrics": {
+            "get": {
+                "description": "Returns the registered metrics",
+                "tags": [
+                    "Metrics"
+                ],
+                "summary": "Get Metrics",
+                "responses": {
+                    "200": {
+                        "description": "Prometheus metrics",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/webhooks/idenfy/id-expiration": {
             "post": {
                 "description": "Processes the doc expiration notification for a client",
@@ -544,7 +566,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "wsProviderURL": {
-                    "type": "string"
+                        "type": "string"
                 }
             }
         },

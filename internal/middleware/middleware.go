@@ -11,6 +11,7 @@ import (
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/metrics"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/responses"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
@@ -163,6 +164,27 @@ func NewLoggingMiddleware(logger *slog.Logger) fiber.Handler {
 			logger.Info("Request completed")
 		}
 
+		return err
+	}
+}
+
+func MetricsMiddleware(metrics *metrics.Metrics) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		start := time.Now()
+		path := c.Path()
+		method := c.Method()
+
+		err := c.Next()
+		status := c.Response().StatusCode()
+
+		duration := time.Since(start)
+
+		metrics.HTTPRequestsReceived.WithLabelValues(method, path).Inc()
+		metrics.HTTPRequestLatency.WithLabelValues(method, path).Observe(duration.Seconds())
+
+		if status == 500 {
+			metrics.InternalServerErrorRate.WithLabelValues(method, path).Inc()
+		}
 		return err
 	}
 }

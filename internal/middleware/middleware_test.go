@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/metrics"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
@@ -253,4 +255,70 @@ func generateTestEd25519Keys() (subkey.KeyPair, error) {
 		return nil, err
 	}
 	return krEd25519, nil
+}
+
+func TestMetricsMiddleware(t *testing.T) {
+	// Setup
+	app := fiber.New()
+
+	// Mock handler that should be called after middleware
+	successHandler := func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	}
+
+	failHandler := func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	m := metrics.GetInstance()
+	err := m.Register()
+	assert.NoError(t, err)
+
+	app.Use(MetricsMiddleware(m))
+	app.Get("/test_success", successHandler)
+	app.Get("/test_fail", failHandler)
+
+	t.Run("successful count for recieved requests", func(t *testing.T) {
+
+		req := httptest.NewRequest(fiber.MethodGet, "/test_success", nil)
+		_, err := app.Test(req)
+
+		assert.NoError(t, err)
+		metric, err := m.HTTPRequestsReceived.GetMetricWithLabelValues("GET", "/test_success")
+
+		assert.NoError(t, err)
+
+		got := &io_prometheus_client.Metric{}
+		err = metric.Write(got)
+
+		assert.NoError(t, err)
+		assert.Equal(t, float64(1), got.GetCounter().GetValue())
+
+	})
+
+	t.Run("successful count for failed requests", func(t *testing.T) {
+
+		req := httptest.NewRequest(fiber.MethodGet, "/test_fail", nil)
+		_, err := app.Test(req)
+
+		assert.NoError(t, err)
+
+		metric1, err1 := m.HTTPRequestsReceived.GetMetricWithLabelValues("GET", "/test_fail")
+		metric2, err2 := m.InternalServerErrorRate.GetMetricWithLabelValues("GET", "/test_fail")
+
+		assert.NoError(t, err1)
+		assert.NoError(t, err2)
+
+		got1 := &io_prometheus_client.Metric{}
+		got2 := &io_prometheus_client.Metric{}
+
+		err = metric1.Write(got1)
+		assert.NoError(t, err)
+		assert.Equal(t, float64(1), got1.GetCounter().GetValue())
+
+		err = metric2.Write(got2)
+		assert.NoError(t, err)
+		assert.Equal(t, float64(1), got2.GetGauge().GetValue())
+
+	})
 }
