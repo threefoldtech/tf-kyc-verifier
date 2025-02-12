@@ -75,7 +75,7 @@ func (c *Substrate) GetAddressByTwinID(twinID uint32) (string, error) {
 
 // get chain name from ws provider url
 func (c *Substrate) GetChainName() (string, error) {
-	start:= time.Now()
+	start := time.Now()
 	api, _, err := c.api.GetClient()
 	c.metrics.SubstrateResponseTime.WithLabelValues("get_client").Observe(time.Since(start).Seconds())
 	if err != nil {

@@ -17,14 +17,14 @@ var (
 )
 
 type Metrics struct {
-	HTTPRequestsReceived         *prometheus.CounterVec
+	HTTPRequestsReceived     *prometheus.CounterVec
 	HTTPRequestLatency       *prometheus.HistogramVec
 	MongoDBOperationsLatency *prometheus.HistogramVec
 	IdenfyResponseTime       *prometheus.HistogramVec
 	SubstrateResponseTime    *prometheus.HistogramVec
 	ServiceUpTime            prometheus.GaugeFunc
-	InternalServerErrorRate  *prometheus.GaugeVec
-	MongoDBOperationsError   *prometheus.GaugeVec
+	InternalServerErrorRate  *prometheus.CounterVec
+	MongoDBOperationsError   *prometheus.CounterVec
 }
 
 func GetInstance() *Metrics {
@@ -65,13 +65,13 @@ func GetInstance() *Metrics {
 					func() float64 { return float64(time.Now().Unix() - startTime) },
 				),
 
-				InternalServerErrorRate: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+				InternalServerErrorRate: prometheus.NewCounterVec(prometheus.CounterOpts{
 					Name: "internal_server_error_rate",
 					Help: "Internal server error rate",
 				}, []string{"method", "path"}),
 
-				MongoDBOperationsError: prometheus.NewGaugeVec(
-					prometheus.GaugeOpts{
+				MongoDBOperationsError: prometheus.NewCounterVec(
+					prometheus.CounterOpts{
 						Name: "mongo_db_operations_error",
 						Help: "Operations that gives error and does not succed",
 					}, []string{"operation", "repo"}),

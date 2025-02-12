@@ -37,20 +37,20 @@ func (r *MongoVerificationRepository) createCollectionIndexes(ctx context.Contex
 		Keys:    key,
 		Options: options.Index().SetUnique(false),
 	})
-	r.metrics.MongoDBOperationsLatency.WithLabelValues("create_index","verification").Observe(time.Since(start).Seconds())
+	r.metrics.MongoDBOperationsLatency.WithLabelValues("create_index", "verification").Observe(time.Since(start).Seconds())
 	if err != nil {
 		r.logger.Error("Error creating index", "key", key, "error", err)
-		r.metrics.MongoDBOperationsError.WithLabelValues("create_index","verification").Inc()
+		r.metrics.MongoDBOperationsError.WithLabelValues("create_index", "verification").Inc()
 	}
 }
 
 func (r *MongoVerificationRepository) SaveVerification(ctx context.Context, verification *models.Verification) error {
 	verification.CreatedAt = time.Now()
 	_, err := r.collection.InsertOne(ctx, verification)
-	r.metrics.MongoDBOperationsLatency.WithLabelValues("insert","verification").Observe(time.Since(verification.CreatedAt).Seconds())
+	r.metrics.MongoDBOperationsLatency.WithLabelValues("insert", "verification").Observe(time.Since(verification.CreatedAt).Seconds())
 	if err != nil {
 		r.logger.Error("Error saving verification", "error", err)
-		r.metrics.MongoDBOperationsError.WithLabelValues("insert","verification").Inc()
+		r.metrics.MongoDBOperationsError.WithLabelValues("insert", "verification").Inc()
 	}
 	return err
 }
@@ -61,13 +61,13 @@ func (r *MongoVerificationRepository) GetVerification(ctx context.Context, clien
 	opts := options.FindOne().SetSort(bson.D{{Key: "createdAt", Value: -1}})
 	start := time.Now()
 	err := r.collection.FindOne(ctx, bson.M{"clientId": clientID}, opts).Decode(&verification)
-	r.metrics.MongoDBOperationsLatency.WithLabelValues("find_one","verification").Observe(time.Since(start).Seconds())
+	r.metrics.MongoDBOperationsLatency.WithLabelValues("find_one", "verification").Observe(time.Since(start).Seconds())
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		r.logger.Error("Error getting verification", "error", err)
-		r.metrics.MongoDBOperationsError.WithLabelValues("find_one","verification").Inc()
+		r.metrics.MongoDBOperationsError.WithLabelValues("find_one", "verification").Inc()
 		return nil, err
 	}
 	return &verification, nil
@@ -80,11 +80,11 @@ func (r *MongoVerificationRepository) UpdateExpirationStatus(ctx context.Context
 			"expirationStatus": status,
 		},
 	}
-	start:= time.Now()
+	start := time.Now()
 	result, err := r.collection.UpdateOne(ctx, filter, update)
-	r.metrics.MongoDBOperationsLatency.WithLabelValues("update","verification").Observe(time.Since(start).Seconds())
+	r.metrics.MongoDBOperationsLatency.WithLabelValues("update", "verification").Observe(time.Since(start).Seconds())
 	if err != nil {
-		r.metrics.MongoDBOperationsError.WithLabelValues("update","verification").Inc()
+		r.metrics.MongoDBOperationsError.WithLabelValues("update", "verification").Inc()
 		return fmt.Errorf("updating expiration status: %w", err)
 	}
 

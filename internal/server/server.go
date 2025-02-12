@@ -76,11 +76,11 @@ func New(config *config.Config, srvLogger *slog.Logger) (*Server, error) {
 		BodyLimit:    REQUETS_BODY_LIMIT,
 	})
 
-	err:=metrics.GetInstance().Register()
+	err := metrics.GetInstance().Register()
 	if err != nil {
 		return nil, fmt.Errorf("registering metrics: %w", err)
 	}
-	
+
 	// Initialize core components
 	if err := server.initializeCore(ctx); err != nil {
 		return nil, fmt.Errorf("initializing core components: %w", err)

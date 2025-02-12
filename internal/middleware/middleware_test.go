@@ -270,39 +270,41 @@ func TestMetricsMiddleware(t *testing.T) {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
-	m:= metrics.GetInstance()
-	m.Register()
+	m := metrics.GetInstance()
+	err := m.Register()
+	assert.NoError(t, err)
 
 	app.Use(MetricsMiddleware(m))
 	app.Get("/test_success", successHandler)
 	app.Get("/test_fail", failHandler)
 
 	t.Run("successful count for recieved requests", func(t *testing.T) {
-	
+
 		req := httptest.NewRequest(fiber.MethodGet, "/test_success", nil)
 		_, err := app.Test(req)
 
 		assert.NoError(t, err)
-		metric, err:= m.HTTPRequestsReceived.GetMetricWithLabelValues("GET", "/test_success")
+		metric, err := m.HTTPRequestsReceived.GetMetricWithLabelValues("GET", "/test_success")
 
 		assert.NoError(t, err)
 
 		got := &io_prometheus_client.Metric{}
-		metric.Write(got)
+		err = metric.Write(got)
 
-		assert.Equal(t,float64(1), got.GetCounter().GetValue())
-	
+		assert.NoError(t, err)
+		assert.Equal(t, float64(1), got.GetCounter().GetValue())
+
 	})
 
 	t.Run("successful count for failed requests", func(t *testing.T) {
-		
+
 		req := httptest.NewRequest(fiber.MethodGet, "/test_fail", nil)
 		_, err := app.Test(req)
 
 		assert.NoError(t, err)
 
-		metric1, err1:= m.HTTPRequestsReceived.GetMetricWithLabelValues("GET", "/test_fail")
-		metric2, err2:= m.InternalServerErrorRate.GetMetricWithLabelValues("GET", "/test_fail")
+		metric1, err1 := m.HTTPRequestsReceived.GetMetricWithLabelValues("GET", "/test_fail")
+		metric2, err2 := m.InternalServerErrorRate.GetMetricWithLabelValues("GET", "/test_fail")
 
 		assert.NoError(t, err1)
 		assert.NoError(t, err2)
@@ -310,11 +312,13 @@ func TestMetricsMiddleware(t *testing.T) {
 		got1 := &io_prometheus_client.Metric{}
 		got2 := &io_prometheus_client.Metric{}
 
-		metric1.Write(got1)
-		assert.Equal(t,float64(1), got1.GetCounter().GetValue())
+		err = metric1.Write(got1)
+		assert.NoError(t, err)
+		assert.Equal(t, float64(1), got1.GetCounter().GetValue())
 
-		metric2.Write(got2)
-		assert.Equal(t,float64(1), got2.GetGauge().GetValue())
+		err = metric2.Write(got2)
+		assert.NoError(t, err)
+		assert.Equal(t, float64(1), got2.GetGauge().GetValue())
 
 	})
 }

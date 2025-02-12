@@ -26,9 +26,9 @@ import (
 )
 
 type Idenfy struct {
-	client *http.Client
-	config IdenfyConfig
-	logger *slog.Logger
+	client  *http.Client
+	config  IdenfyConfig
+	logger  *slog.Logger
 	metrics *metrics.Metrics
 }
 
@@ -45,8 +45,8 @@ func New(config IdenfyConfig, logger *slog.Logger) *Idenfy {
 		client: &http.Client{
 			Timeout: DefaultTimeout,
 		},
-		config: config,
-		logger: logger,
+		config:  config,
+		logger:  logger,
 		metrics: metrics.GetInstance(),
 	}
 }
@@ -56,7 +56,7 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	if err != nil {
 		return models.Token{}, fmt.Errorf("preparing request: %w", err)
 	}
-	start:= time.Now()
+	start := time.Now()
 	resp, err := c.client.Do(req)
 	c.metrics.IdenfyResponseTime.WithLabelValues("create_verification_session").Observe(time.Since(start).Seconds())
 	if err != nil {

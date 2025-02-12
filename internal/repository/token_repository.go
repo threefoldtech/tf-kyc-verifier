@@ -16,14 +16,14 @@ import (
 type MongoTokenRepository struct {
 	collection *mongo.Collection
 	logger     *slog.Logger
-	metrics   *metrics.Metrics
+	metrics    *metrics.Metrics
 }
 
 func NewMongoTokenRepository(ctx context.Context, db *mongo.Database, logger *slog.Logger) TokenRepository {
 	repo := &MongoTokenRepository{
 		collection: db.Collection("tokens"),
 		logger:     logger,
-		metrics: metrics.GetInstance(),
+		metrics:    metrics.GetInstance(),
 	}
 	repo.createTTLIndex(ctx)
 	repo.createCollectionIndexes(ctx)
@@ -31,7 +31,7 @@ func NewMongoTokenRepository(ctx context.Context, db *mongo.Database, logger *sl
 }
 
 func (r *MongoTokenRepository) createTTLIndex(ctx context.Context) {
-	start:= time.Now()
+	start := time.Now()
 	_, err := r.collection.Indexes().CreateOne(
 		ctx,
 		mongo.IndexModel{
@@ -69,7 +69,7 @@ func (r *MongoTokenRepository) SaveToken(ctx context.Context, token *models.Toke
 	token.CreatedAt = time.Now()
 	token.ExpiresAt = token.CreatedAt.Add(time.Duration(token.ExpiryTime) * time.Second)
 	_, err := r.collection.InsertOne(ctx, token)
-	r.metrics.MongoDBOperationsLatency.WithLabelValues("insert","token").Observe(time.Since(token.CreatedAt).Seconds())
+	r.metrics.MongoDBOperationsLatency.WithLabelValues("insert", "token").Observe(time.Since(token.CreatedAt).Seconds())
 	if err != nil {
 		r.logger.Error("Error saving token", "error", err)
 		r.metrics.MongoDBOperationsError.WithLabelValues("insert", "token").Inc()
@@ -95,7 +95,7 @@ func (r *MongoTokenRepository) GetToken(ctx context.Context, clientID string) (*
 func (r *MongoTokenRepository) DeleteToken(ctx context.Context, clientID string, scanRef string) error {
 	start := time.Now()
 	_, err := r.collection.DeleteOne(ctx, bson.M{"clientId": clientID, "scanRef": scanRef})
-	r.metrics.MongoDBOperationsLatency.WithLabelValues("delete","token").Observe(time.Since(start).Seconds())
+	r.metrics.MongoDBOperationsLatency.WithLabelValues("delete", "token").Observe(time.Since(start).Seconds())
 	if err != nil {
 		r.logger.Error("Error deleting token", "error", err)
 		r.metrics.MongoDBOperationsError.WithLabelValues("delete", "token").Inc()
