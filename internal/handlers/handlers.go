@@ -410,8 +410,7 @@ func (h *Handler) GetSponsorships() fiber.Handler {
 
 		// Get sponsorships based on the provided filter
 		if sponsorTwinID > 0 {
-			sponsorships, err = h.kycService.GetSponsorshipsBySponsor(c.Context(), uint32(sponsorTwinID))
-			total = int64(len(sponsorships))
+			sponsorships, total, err = h.kycService.GetSponsorshipsBySponsor(c.Context(), uint32(sponsorTwinID), limit, offset)
 		} else if sponseeTwinID > 0 {
 			var sponsorship *models.Sponsorship
 			sponsorship, err = h.kycService.GetSponsorshipBySponsee(c.Context(), uint32(sponseeTwinID))

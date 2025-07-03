@@ -346,13 +346,17 @@ func (s *KYCService) CreateSponsorship(ctx context.Context, sponsorClientID, spo
 }
 
 // GetSponsorships returns all active sponsorships for a given sponsor
-func (s *KYCService) GetSponsorshipsBySponsor(ctx context.Context, sponsorTwinID uint32) ([]*models.Sponsorship, error) {
+func (s *KYCService) GetSponsorshipsBySponsor(ctx context.Context, sponsorTwinID uint32, limit, offset int64) ([]*models.Sponsorship, int64, error) {
 	// get the address from the twinID
 	address, err := s.substrate.GetAddressByTwinID(sponsorTwinID)
 	if err != nil {
-		return nil, fmt.Errorf("getting address from twinID: %w", err)
+		return nil, 0, fmt.Errorf("getting address from twinID: %w", err)
 	}
-	return s.sponsorshipRepo.GetBySponsor(ctx, address)
+	pagination := repository.PaginationParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+	return s.sponsorshipRepo.GetBySponsor(ctx, address, pagination)
 }
 
 // GetSponsorshipBySponsee returns the active sponsorship for a given sponsee

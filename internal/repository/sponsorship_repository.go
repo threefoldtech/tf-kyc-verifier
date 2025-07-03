@@ -24,7 +24,7 @@ type SponsorshipRepository interface {
 	Create(ctx context.Context, sponsorship *models.Sponsorship) error
 
 	// GetBySponsor returns all active sponsorships for a given sponsor
-	GetBySponsor(ctx context.Context, sponsorClientID string) ([]*models.Sponsorship, error)
+	GetBySponsor(ctx context.Context, sponsorClientID string, pagination PaginationParams) ([]*models.Sponsorship, int64, error)
 
 	// GetBySponsee returns the active sponsorship for a given sponsee
 	// Returns nil, nil if no active sponsorship exists
@@ -74,22 +74,36 @@ func (r *mongoSponsorshipRepository) Create(ctx context.Context, sponsorship *mo
 	return nil
 }
 
-func (r *mongoSponsorshipRepository) GetBySponsor(ctx context.Context, sponsorClientID string) ([]*models.Sponsorship, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{
+func (r *mongoSponsorshipRepository) GetBySponsor(ctx context.Context, sponsorClientID string, pagination PaginationParams) ([]*models.Sponsorship, int64, error) {
+	filter := bson.M{
 		"sponsor_client_id": sponsorClientID,
 		"is_active":         true,
-	})
+	}
+
+	// Count total documents first
+	total, err := r.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	// Create find options for pagination
+	findOptions := options.Find()
+	findOptions.SetLimit(pagination.Limit)
+	findOptions.SetSkip(pagination.Offset)
+	findOptions.SetSort(bson.D{{Key: "created_at", Value: -1}}) // Sort by creation date, newest first
+
+	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
 	var sponsorships []*models.Sponsorship
 	if err := cursor.All(ctx, &sponsorships); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return sponsorships, nil
+	return sponsorships, total, nil
 }
 
 func (r *mongoSponsorshipRepository) GetBySponsee(ctx context.Context, sponseeClientID string) (*models.Sponsorship, error) {
