@@ -289,13 +289,14 @@ func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool,
 		}
 		if sponsorship != nil {
 			// User is sponsored, check if the sponsor is verified
-			sponsorVerified, err := s.IsUserVerified(ctx, sponsorship.SponsorClientID)
+			sponsorVerification, err := s.GetVerificationData(ctx, sponsorship.SponsorClientID)
 			if err != nil {
 				s.logger.Error("Error checking sponsor verification status", "sponsorClientID", sponsorship.SponsorClientID, "error", err)
 				return false, errors.NewInternalError("checking sponsor verification status", err)
 			}
-			if sponsorVerified {
-				return verification.ToOutcome(*s.config).Outcome == models.OutcomeApproved, nil
+			if sponsorVerification != nil {
+				// return the verification outcome of the sponsor
+				return sponsorVerification.ToOutcome(*s.config).Outcome == models.OutcomeApproved, nil
 			}
 			s.logger.Warn("User is sponsored by an unverified sponsor", "sponseeClientID", clientID, "sponsorClientID", sponsorship.SponsorClientID)
 			return false, nil // User is sponsored by an unverified sponsor
