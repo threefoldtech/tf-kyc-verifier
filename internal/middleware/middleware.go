@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/config"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
-	"github.com/threefoldtech/tf-kyc-verifier/internal/handlers"
 	"github.com/threefoldtech/tf-kyc-verifier/internal/responses"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
@@ -43,7 +42,11 @@ func AuthMiddleware(config config.Challenge) fiber.Handler {
 
 		err := authenticate(clientID, signature, challenge, c, config)
 		if err != nil {
-			return err
+			if serviceErr, ok := err.(*errors.ServiceError); ok {
+				statusCode := responses.GetStatusCode(serviceErr.Type)
+				return responses.RespondWithError(c, statusCode, serviceErr)
+			}
+			return responses.RespondWithError(c, fiber.StatusInternalServerError, err)
 		}
 		// Store the verified client ID in the context for later use
 		c.Locals("clientID", clientID)
@@ -134,7 +137,11 @@ func SponseeAuthMiddleware(config config.Challenge) fiber.Handler {
 
 		err := authenticate(sponseeID, signature, challenge, c, config)
 		if err != nil {
-			return err
+			if serviceErr, ok := err.(*errors.ServiceError); ok {
+				statusCode := responses.GetStatusCode(serviceErr.Type)
+				return responses.RespondWithError(c, statusCode, serviceErr)
+			}
+			return responses.RespondWithError(c, fiber.StatusInternalServerError, err)
 		}
 
 		// Store the verified sponsee ID in the context for later use
@@ -147,21 +154,13 @@ func authenticate(clientID string, signature string, challenge string, c *fiber.
 	// Verify the challenge and signature
 	err := ValidateChallenge(clientID, signature, challenge, config.Domain, config.Window)
 	if err != nil {
-		serviceError, ok := err.(*errors.ServiceError)
-		if ok {
-			return handlers.HandleServiceError(c, serviceError)
-		}
-		return responses.RespondWithError(c, fiber.StatusBadRequest, err)
+		return err
 	}
 
 	// Verify the signature
 	err = VerifySubstrateSignature(clientID, signature, challenge)
 	if err != nil {
-		serviceError, ok := err.(*errors.ServiceError)
-		if ok {
-			return handlers.HandleServiceError(c, serviceError)
-		}
-		return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
+		return err
 	}
 	return nil
 }
@@ -205,3 +204,5 @@ func NewLoggingMiddleware(logger *slog.Logger) fiber.Handler {
 		return err
 	}
 }
+
+

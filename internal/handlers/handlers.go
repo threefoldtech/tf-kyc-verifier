@@ -441,29 +441,8 @@ func HandleError(c *fiber.Ctx, err error) error {
 }
 
 func HandleServiceError(c *fiber.Ctx, err *errors.ServiceError) error {
-	statusCode := getStatusCode(err.Type)
+	statusCode := responses.GetStatusCode(err.Type)
 	return responses.RespondWithError(c, statusCode, err)
-}
-
-func getStatusCode(errorType errors.ErrorType) int {
-	switch errorType {
-	case errors.ErrorTypeValidation:
-		return fiber.StatusBadRequest
-	case errors.ErrorTypeAuthorization:
-		return fiber.StatusUnauthorized
-	case errors.ErrorTypeNotFound:
-		return fiber.StatusNotFound
-	case errors.ErrorTypeConflict:
-		return fiber.StatusConflict
-	case errors.ErrorTypeExternal:
-		return fiber.StatusServiceUnavailable
-	case errors.ErrorTypeNotSufficientBalance:
-		return fiber.StatusPaymentRequired
-	case errors.ErrorTypeForbidden:
-		return fiber.StatusForbidden
-	default:
-		return fiber.StatusInternalServerError
-	}
 }
 
 // getUint32Param parses a query parameter as uint32
