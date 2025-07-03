@@ -318,7 +318,7 @@ func (h *Handler) GetServiceVersion() fiber.Handler {
 func (h *Handler) CreateSponsorship() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Get the Sponsee twin ID from the AuthMiddleware (set by SponseeAuthMiddleware)
-		sponseeClientID, ok := c.Locals("SponseeID").(string)
+		sponseeClientID, ok := c.Locals("sponseeID").(string)
 		if !ok || sponseeClientID == "" {
 			h.logger.Error("missing or invalid sponsee client ID in context")
 			return responses.RespondWithError(c, fiber.StatusInternalServerError, fmt.Errorf("missing sponsee authentication"))
