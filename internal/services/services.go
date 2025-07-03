@@ -313,11 +313,11 @@ func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool,
 // CreateSponsorship creates a new sponsorship between a sponsor and sponsee
 func (s *KYCService) CreateSponsorship(ctx context.Context, sponsorClientID, sponseeClientID string) (*models.Sponsorship, error) {
 	// Check if sponsor is directly KYC-verified
-	sponsorVerified, err := s.IsUserVerified(ctx, sponsorClientID)
+	sponsorVerification, err := s.GetVerificationData(ctx, sponsorClientID)
 	if err != nil {
 		return nil, fmt.Errorf("checking sponsor verification status: %w", err)
 	}
-	if !sponsorVerified {
+	if sponsorVerification == nil || sponsorVerification.ToOutcome(*s.config).Outcome != models.OutcomeApproved {
 		return nil, errors.NewAuthorizationError("sponsor is not KYC-verified", nil)
 	}
 
@@ -335,7 +335,6 @@ func (s *KYCService) CreateSponsorship(ctx context.Context, sponsorClientID, spo
 		SponsorClientID: sponsorClientID,
 		SponseeClientID: sponseeClientID,
 		CreatedAt:       time.Now(),
-		IsActive:        true,
 	}
 
 	if err := s.sponsorshipRepo.Create(ctx, sponsorship); err != nil {

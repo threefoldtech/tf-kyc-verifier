@@ -42,7 +42,6 @@ type mongoSponsorshipRepository struct {
 
 // NewMongoSponsorshipRepository creates a new MongoDB implementation of SponsorshipRepository
 func NewMongoSponsorshipRepository(ctx context.Context, db *mongo.Database, logger *slog.Logger) SponsorshipRepository {
-	// TODO: Add the logger
 	repo := &mongoSponsorshipRepository{
 		collection: db.Collection((&models.Sponsorship{}).CollectionName()),
 		logger:     logger,
@@ -58,7 +57,7 @@ func NewMongoSponsorshipRepository(ctx context.Context, db *mongo.Database, logg
 // Returns mongo.WriteException with code 11000 if a sponsorship already exists for the sponsee
 func (r *mongoSponsorshipRepository) Create(ctx context.Context, sponsorship *models.Sponsorship) error {
 	sponsorship.CreatedAt = time.Now()
-	sponsorship.IsActive = true
+	
 
 	// This will fail with a duplicate key error if a sponsorship already exists for this sponsee
 	// due to the unique index on sponsee_twin_id with is_active: true
@@ -77,7 +76,6 @@ func (r *mongoSponsorshipRepository) Create(ctx context.Context, sponsorship *mo
 func (r *mongoSponsorshipRepository) GetBySponsor(ctx context.Context, sponsorClientID string, pagination PaginationParams) ([]*models.Sponsorship, int64, error) {
 	filter := bson.M{
 		"sponsor_client_id": sponsorClientID,
-		"is_active":         true,
 	}
 
 	// Count total documents first
@@ -110,7 +108,6 @@ func (r *mongoSponsorshipRepository) GetBySponsee(ctx context.Context, sponseeCl
 	var sponsorship models.Sponsorship
 	err := r.collection.FindOne(ctx, bson.M{
 		"sponsee_client_id": sponseeClientID,
-		"is_active":         true,
 	}).Decode(&sponsorship)
 
 	if err == mongo.ErrNoDocuments {
@@ -126,7 +123,7 @@ func (r *mongoSponsorshipRepository) GetBySponsee(ctx context.Context, sponseeCl
 
 func (r *mongoSponsorshipRepository) ListAll(ctx context.Context, pagination PaginationParams) ([]*models.Sponsorship, int64, error) {
 	// Count total documents first
-	total, err := r.collection.CountDocuments(ctx, bson.M{"is_active": true})
+	total, err := r.collection.CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, err
 	}
@@ -138,7 +135,7 @@ func (r *mongoSponsorshipRepository) ListAll(ctx context.Context, pagination Pag
 	findOptions.SetSort(bson.D{{Key: "created_at", Value: -1}}) // Sort by creation date, newest first
 
 	// Find all active sponsorships with pagination
-	cursor, err := r.collection.Find(ctx, bson.M{"is_active": true}, findOptions)
+	cursor, err := r.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -153,36 +150,27 @@ func (r *mongoSponsorshipRepository) ListAll(ctx context.Context, pagination Pag
 }
 
 func (r *mongoSponsorshipRepository) createCollectionIndexes(ctx context.Context) {
-	// Index for sponsor lookups
+	// Index for sponsor lookups, optimized for sorting
 	sponsorIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "sponsor_client_id", Value: 1},
-			{Key: "is_active", Value: 1},
+			{Key: "created_at", Value: -1},
 		},
 	}
 
-	// Unique index for sponsee (a twin can only be sponsored by one active sponsor at a time)
+	// Unique index for sponsee (a twin can only be sponsored once)
 	sponseeIndex := mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "sponsee_client_id", Value: 1},
-		},
-		Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.M{"is_active": true}),
+		Keys:    bson.D{{Key: "sponsee_client_id", Value: 1}},
+		Options: options.Index().SetUnique(true),
 	}
 
-	_, err := r.collection.Indexes().CreateMany(ctx, []mongo.IndexModel{sponsorIndex, sponseeIndex})
+	// Index for listing all sponsorships, sorted by creation date
+	listAllIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "created_at", Value: -1}},
+	}
+
+	_, err := r.collection.Indexes().CreateMany(ctx, []mongo.IndexModel{sponsorIndex, sponseeIndex, listAllIndex})
 	if err != nil {
 		r.logger.Error("Error creating sponsorship indexes", "error", err)
 	}
-}
-
-// isDuplicateKeyError checks if the error is a MongoDB duplicate key error
-func isDuplicateKeyError(err error) bool {
-	if we, ok := err.(mongo.WriteException); ok {
-		for _, e := range we.WriteErrors {
-			if e.Code == 11000 { // MongoDB duplicate key error code
-				return true
-			}
-		}
-	}
-	return false
 }

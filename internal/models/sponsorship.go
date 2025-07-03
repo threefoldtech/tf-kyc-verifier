@@ -13,7 +13,7 @@ type Sponsorship struct {
 	SponsorClientID string             `bson:"sponsor_client_id"`
 	SponseeClientID string             `bson:"sponsee_client_id"`
 	CreatedAt       time.Time          `bson:"created_at"`
-	IsActive        bool               `bson:"is_active"`
+	
 }
 
 // CollectionName returns the name of the MongoDB collection for sponsorships
