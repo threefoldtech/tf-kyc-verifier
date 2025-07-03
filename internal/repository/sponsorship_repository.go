@@ -57,7 +57,6 @@ func NewMongoSponsorshipRepository(ctx context.Context, db *mongo.Database, logg
 // Returns mongo.WriteException with code 11000 if a sponsorship already exists for the sponsee
 func (r *mongoSponsorshipRepository) Create(ctx context.Context, sponsorship *models.Sponsorship) error {
 	sponsorship.CreatedAt = time.Now()
-	
 
 	// This will fail with a duplicate key error if a sponsorship already exists for this sponsee
 	// due to the unique index on sponsee_twin_id with is_active: true
