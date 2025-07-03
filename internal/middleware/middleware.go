@@ -22,6 +22,11 @@ const (
 	HeaderClientID  = "X-Client-ID"
 	HeaderChallenge = "X-Challenge"
 	HeaderSignature = "X-Signature"
+
+	// Sponsee Authentication headers
+	HeaderSponseeID        = "X-Sponsee-ID"
+	HeaderSponseeChallenge = "X-Sponsee-Challenge"
+	HeaderSponseeSignature = "X-Sponsee-Signature"
 )
 
 // AuthMiddleware is a middleware that validates the authentication credentials
@@ -54,7 +59,8 @@ func AuthMiddleware(config config.Challenge) fiber.Handler {
 			}
 			return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
 		}
-
+		// Store the verified client ID in the context for later use
+		c.Locals("clientID", clientID)
 		return c.Next()
 	}
 }
@@ -128,6 +134,45 @@ func ValidateChallenge(address, signature, challenge, expectedDomain string, cha
 	return nil
 }
 
+// SponseeAuthMiddleware verifies the sponsee's authentication using custom headers
+func SponseeAuthMiddleware(config config.Challenge) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		sponseeID := c.Get(HeaderSponseeID)
+		signature := c.Get(HeaderSponseeSignature)
+		challenge := c.Get(HeaderSponseeChallenge)
+
+		if sponseeID == "" || signature == "" || challenge == "" {
+			return responses.RespondWithError(c, fiber.StatusBadRequest, 
+				fmt.Errorf("missing sponsee authentication credentials"))
+		}
+
+		// Verify the challenge and signature
+		err := ValidateChallenge(sponseeID, signature, challenge, config.Domain, config.Window)
+		if err != nil {
+			serviceError, ok := err.(*errors.ServiceError)
+			if ok {
+				return handlers.HandleServiceError(c, serviceError)
+			}
+			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
+		}
+
+		// Verify the signature
+		err = VerifySubstrateSignature(sponseeID, signature, challenge)
+		if err != nil {
+			serviceError, ok := err.(*errors.ServiceError)
+			if ok {
+				return handlers.HandleServiceError(c, serviceError)
+			}
+			return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
+		}
+
+		// Store the verified sponsee ID in the context for later use
+		c.Locals("sponseeID", sponseeID)
+		return c.Next()
+	}
+}
+
+// NewLoggingMiddleware creates a new logging middleware
 func NewLoggingMiddleware(logger *slog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()

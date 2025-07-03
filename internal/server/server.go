@@ -190,6 +190,7 @@ func (s *Server) setupDatabase(ctx context.Context) (*mongo.Database, error) {
 type repositories struct {
 	token        repository.TokenRepository
 	verification repository.VerificationRepository
+	sponsorship  repository.SponsorshipRepository
 }
 
 func (s *Server) setupRepositories(ctx context.Context, db *mongo.Database) (*repositories, error) {
@@ -198,6 +199,7 @@ func (s *Server) setupRepositories(ctx context.Context, db *mongo.Database) (*re
 	return &repositories{
 		token:        repository.NewMongoTokenRepository(ctx, db, s.logger),
 		verification: repository.NewMongoVerificationRepository(ctx, db, s.logger),
+		sponsorship:  repository.NewMongoSponsorshipRepository(ctx, db, s.logger),
 	}, nil
 }
 
@@ -213,6 +215,7 @@ func (s *Server) setupServices(repos *repositories) (*services.KYCService, error
 	kycService, err := services.NewKYCService(
 		repos.verification,
 		repos.token,
+		repos.sponsorship,
 		idenfyClient,
 		substrateClient,
 		s.config,
@@ -237,6 +240,14 @@ func (s *Server) setupRoutes(kycService *services.KYCService, mongoCl *mongo.Cli
 	v1.Get("/health", handler.HealthCheck(mongoCl))
 	v1.Get("/configs", handler.GetServiceConfigs())
 	v1.Get("/version", handler.GetServiceVersion())
+
+	// Sponsorship routes
+	v1.Post("/sponsorships",
+		middleware.AuthMiddleware(s.config.Challenge),        // Verify sponsor auth
+		middleware.SponseeAuthMiddleware(s.config.Challenge), // Verify sponsee auth
+		handler.CreateSponsorship(),
+	)
+	v1.Get("/sponsorships", handler.GetSponsorships())
 
 	// Webhook routes
 	webhooks := s.app.Group("/webhooks/idenfy")

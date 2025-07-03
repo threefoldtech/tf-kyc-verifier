@@ -201,6 +201,43 @@ func NewVerificationDataResponse(verification *models.Verification) *Verificatio
 // appConfigsResponse
 type AppConfigsResponse = config.Config
 
+// PaginatedResponse represents a paginated API response
+type PaginatedResponse struct {
+	Data       any `json:"data"`
+	Pagination struct {
+		Total  int64 `json:"total"`
+		Limit  int64 `json:"limit"`
+		Offset int64 `json:"offset"`
+	} `json:"pagination"`
+}
+
+// RespondWithPagination sends a paginated JSON response
+func RespondWithPagination(c *fiber.Ctx, status int, data any, total, limit, offset int64) error {
+	resp := &APIResponse{
+		Result: struct {
+			Data       any `json:"data"`
+			Pagination struct {
+				Total  int64 `json:"total"`
+				Limit  int64 `json:"limit"`
+				Offset int64 `json:"offset"`
+			} `json:"pagination"`
+		}{
+			Data: data,
+			Pagination: struct {
+				Total  int64 `json:"total"`
+				Limit  int64 `json:"limit"`
+				Offset int64 `json:"offset"`
+			}{
+				Total:  total,
+				Limit:  limit,
+				Offset: offset,
+			},
+		},
+	}
+
+	return c.Status(status).JSON(resp)
+}
+
 // appVersionResponse
 type AppVersionResponse struct {
 	Version string `json:"version"`

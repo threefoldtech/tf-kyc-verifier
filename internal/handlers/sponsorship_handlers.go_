@@ -1,0 +1,191 @@
+package handlers
+
+import (
+	"fmt"
+	"log/slog"
+	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/errors"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/middleware"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/models"
+	"github.com/threefoldtech/tf-kyc-verifier/internal/repository"
+)
+
+type SponsorshipHandler struct {
+	repo   repository.SponsorshipRepository
+	logger *slog.Logger
+}
+
+func NewSponsorshipHandler(repo repository.SponsorshipRepository, logger *slog.Logger) *SponsorshipHandler {
+	return &SponsorshipHandler{
+		repo:   repo,
+		logger: logger,
+	}
+}
+
+type createSponsorshipRequest struct {
+	SponsorTwinID uint32 `json:"sponsor_twin_id" validate:"required,gt=0"`
+	SponseeTwinID uint32 `json:"sponsee_twin_id" validate:"required,gt=0,nefield=SponsorTwinID"`
+}
+
+// CreateSponsorship handles the creation of a new sponsorship
+// @Summary Create a new sponsorship
+// @Description Creates a new sponsorship where a KYC-verified twin sponsors another twin
+// @Tags Sponsorships
+// @Accept json
+// @Produce json
+// @Param X-Sponsee-Signature header string true "Hex-encoded signature from the sponsee"
+// @Param X-Sponsee-Challenge header string true "Hex-encoded challenge string"
+// @Param request body createSponsorshipRequest true "Sponsorship details"
+// @Success 201 {object} models.Sponsorship
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/sponsorships [post]
+func (h *SponsorshipHandler) CreateSponsorship(c *fiber.Ctx) error {
+	// Get the sponsee twin ID from the SponseeAuthMiddleware
+	sponseeTwinID, ok := c.Locals("sponseeID").(string)
+	if !ok || sponseeTwinID == "" {
+		h.logger.Error("Missing or invalid sponsee ID", "error", fmt.Errorf("missing or invalid sponsee ID"))
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Missing or invalid sponsee ID",
+		})
+	}
+
+	// Parse and validate request body
+	var req createSponsorshipRequest
+	if err := c.BodyParser(&req); err != nil {
+		h.logger.Error("Failed to parse request body", "error", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	// Verify that the sponsee ID in the request matches the authenticated sponsee from the middleware
+	if strconv.FormatUint(uint64(req.SponseeTwinID), 10) != sponseeTwinID {
+		h.logger.Error("Sponsee ID in request does not match authenticated sponsee", 
+			"requested_sponsee_id", req.SponseeTwinID,
+			"authenticated_sponsee_id", sponseeTwinID)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Sponsee ID in request does not match authenticated sponsee",
+		})
+	}
+
+	// Create new sponsorship
+	sponsorship := &models.Sponsorship{
+		SponsorTwinID: req.SponsorTwinID,
+		SponseeTwinID: req.SponseeTwinID,
+		CreatedAt:     time.Now(),
+		IsActive:      true,
+	}
+
+	// Store the sponsorship
+	if err := h.repo.Create(c.Context(), sponsorship); err != nil {
+		if isDuplicateKeyError(err) {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error": "A sponsorship already exists for this sponsee",
+			})
+		}
+		h.logger.Error("Failed to create sponsorship", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create sponsorship",
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(sponsorship)
+}
+
+// GetSponsorships handles listing sponsorships with optional filtering
+// @Summary List sponsorships
+// @Description Lists sponsorships with optional filtering by sponsor or sponsee twin ID
+// @Tags Sponsorships
+// @Produce json
+// @Param sponsor_twin_id query int false "Filter by sponsor twin ID"
+// @Param sponsee_twin_id query int false "Filter by sponsee twin ID"
+// @Success 200 {array} models.Sponsorship
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/sponsorships [get]
+func (h *SponsorshipHandler) GetSponsorships(c *fiber.Ctx) error {
+	// Parse query parameters
+	sponsorTwinID, err := getUint32Param(c, "sponsor_twin_id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid sponsor_twin_id parameter",
+		})
+	}
+
+	sponseeTwinID, err := getUint32Param(c, "sponsee_twin_id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid sponsee_twin_id parameter",
+		})
+	}
+
+	// Ensure exactly one filter is provided
+	if (sponsorTwinID == 0 && sponseeTwinID == 0) || (sponsorTwinID > 0 && sponseeTwinID > 0) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Exactly one of sponsor_twin_id or sponsee_twin_id must be provided",
+		})
+	}
+
+	// Query the appropriate endpoint based on the filter
+	if sponsorTwinID > 0 {
+		sponsorships, err := h.repo.GetBySponsor(c.Context(), sponsorTwinID)
+		if err != nil {
+			h.logger.Error("Failed to get sponsorships by sponsor", "error", err, "sponsor_twin_id", sponsorTwinID)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to get sponsorships",
+			})
+		}
+		return c.JSON(sponsorships)
+	}
+
+	// Handle sponsee_twin_id filter
+	sponsorship, err := h.repo.GetBySponsee(c.Context(), sponseeTwinID)
+	if err != nil {
+		h.logger.Error("Failed to get sponsorship by sponsee", "error", err, "sponsee_twin_id", sponseeTwinID)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to get sponsorship",
+		})
+	}
+
+	// Return empty array instead of null when no sponsorship is found
+	if sponsorship == nil {
+		return c.JSON([]*models.Sponsorship{})
+	}
+
+	return c.JSON([]*models.Sponsorship{sponsorship})
+}
+
+	return nil
+}
+
+// getUint32Param parses a query parameter as uint32
+func getUint32Param(c *fiber.Ctx, param string) (uint32, error) {
+	value := c.Query(param)
+	if value == "" {
+		return 0, nil
+	}
+
+	intValue, err := strconv.ParseUint(value, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(intValue), nil
+}
+
+// isDuplicateKeyError checks if the error is a MongoDB duplicate key error
+func isDuplicateKeyError(err error) bool {
+	if we, ok := err.(mongo.WriteException); ok {
+		for _, e := range we.WriteErrors {
+			if e.Code == 11000 { // MongoDB duplicate key error code
+				return true
+			}
+		}
+	}
+	return false
+}
