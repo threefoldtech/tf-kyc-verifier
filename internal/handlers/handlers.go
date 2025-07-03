@@ -347,7 +347,7 @@ func (h *Handler) CreateSponsorship() fiber.Handler {
 // @Produce json
 // @Param sponsor_twin_id query int false "Filter by sponsor twin ID (mutually exclusive with sponsee_twin_id)"
 // @Param sponsee_twin_id query int false "Filter by sponsee twin ID (mutually exclusive with sponsor_twin_id)"
-// @Param limit query int false "Maximum number of results to return (default: 100, max: 1000)"
+// @Param limit query int false "Maximum number of results to return (default: 50, max: 100)"
 // @Param offset query int false "Number of results to skip for pagination (default: 0)"
 // @Success 200 {object} responses.PaginatedResponse{data=[]models.Sponsorship} "Paginated list of sponsorships"
 // @Failure 400 {object} responses.ErrorResponse "Bad request"
@@ -369,7 +369,7 @@ func (h *Handler) GetSponsorships() fiber.Handler {
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("invalid sponsee_twin_id parameter"))
 		}
 
-		// Parse pagination parameters
+		// Parse and validate pagination parameters with default limit of 50, default offset of 0 and max limit of 100
 		limit, err := strconv.ParseInt(c.Query("limit", "50"), 10, 64)
 		if err != nil || limit < 1 {
 			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("invalid limit parameter"))

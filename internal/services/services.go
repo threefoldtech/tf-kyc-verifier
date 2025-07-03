@@ -368,17 +368,6 @@ func (s *KYCService) GetSponsorshipBySponsee(ctx context.Context, sponseeTwinID 
 // limit: maximum number of sponsorships to return (default: 100, max: 1000)
 // offset: number of sponsorships to skip (default: 0)
 func (s *KYCService) ListAllSponsorships(ctx context.Context, limit, offset int64) ([]*models.Sponsorship, int64, error) {
-	// Validate pagination parameters
-	if limit <= 0 {
-		limit = 100 // Default limit
-	}
-	if limit > 1000 {
-		limit = 1000 // Maximum limit to prevent excessive load
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
 	pagination := repository.PaginationParams{
 		Limit:  limit,
 		Offset: offset,
