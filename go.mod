@@ -1,6 +1,6 @@
 module github.com/threefoldtech/tf-kyc-verifier
 
-go 1.22.1
+go 1.22
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.5

@@ -37,27 +37,13 @@ func AuthMiddleware(config config.Challenge) fiber.Handler {
 		challenge := c.Get(HeaderChallenge)
 
 		if clientID == "" || signature == "" || challenge == "" {
-			return responses.RespondWithError(c, fiber.StatusBadRequest, fmt.Errorf("missing authentication credentials"))
+			return responses.RespondWithError(c, fiber.StatusBadRequest,
+				fmt.Errorf("missing authentication credentials"))
 		}
 
-		// Verify the clientID and signature here
-		err := ValidateChallenge(clientID, signature, challenge, config.Domain, config.Window)
+		err := authenticate(clientID, signature, challenge, c, config)
 		if err != nil {
-			// cast error to service error and convert it to http status code
-			serviceError, ok := err.(*errors.ServiceError)
-			if ok {
-				return handlers.HandleServiceError(c, serviceError)
-			}
-			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
-		}
-		// Verify the signature
-		err = VerifySubstrateSignature(clientID, signature, challenge)
-		if err != nil {
-			serviceError, ok := err.(*errors.ServiceError)
-			if ok {
-				return handlers.HandleServiceError(c, serviceError)
-			}
-			return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
+			return err
 		}
 		// Store the verified client ID in the context for later use
 		c.Locals("clientID", clientID)
@@ -142,34 +128,42 @@ func SponseeAuthMiddleware(config config.Challenge) fiber.Handler {
 		challenge := c.Get(HeaderSponseeChallenge)
 
 		if sponseeID == "" || signature == "" || challenge == "" {
-			return responses.RespondWithError(c, fiber.StatusBadRequest, 
+			return responses.RespondWithError(c, fiber.StatusBadRequest,
 				fmt.Errorf("missing sponsee authentication credentials"))
 		}
 
-		// Verify the challenge and signature
-		err := ValidateChallenge(sponseeID, signature, challenge, config.Domain, config.Window)
+		err := authenticate(sponseeID, signature, challenge, c, config)
 		if err != nil {
-			serviceError, ok := err.(*errors.ServiceError)
-			if ok {
-				return handlers.HandleServiceError(c, serviceError)
-			}
-			return responses.RespondWithError(c, fiber.StatusBadRequest, err)
-		}
-
-		// Verify the signature
-		err = VerifySubstrateSignature(sponseeID, signature, challenge)
-		if err != nil {
-			serviceError, ok := err.(*errors.ServiceError)
-			if ok {
-				return handlers.HandleServiceError(c, serviceError)
-			}
-			return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
+			return err
 		}
 
 		// Store the verified sponsee ID in the context for later use
 		c.Locals("sponseeID", sponseeID)
 		return c.Next()
 	}
+}
+
+func authenticate(clientID string, signature string, challenge string, c *fiber.Ctx, config config.Challenge) error {
+	// Verify the challenge and signature
+	err := ValidateChallenge(clientID, signature, challenge, config.Domain, config.Window)
+	if err != nil {
+		serviceError, ok := err.(*errors.ServiceError)
+		if ok {
+			return handlers.HandleServiceError(c, serviceError)
+		}
+		return responses.RespondWithError(c, fiber.StatusBadRequest, err)
+	}
+
+	// Verify the signature
+	err = VerifySubstrateSignature(clientID, signature, challenge)
+	if err != nil {
+		serviceError, ok := err.(*errors.ServiceError)
+		if ok {
+			return handlers.HandleServiceError(c, serviceError)
+		}
+		return responses.RespondWithError(c, fiber.StatusUnauthorized, err)
+	}
+	return nil
 }
 
 // NewLoggingMiddleware creates a new logging middleware

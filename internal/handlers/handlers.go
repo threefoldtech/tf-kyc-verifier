@@ -28,9 +28,6 @@ import (
 )
 
 const (
-	// Authentication headers
-	HeaderClientID = "X-Client-ID"
-
 	// iDenfy webhook headers
 	HeaderIdenfySignature = "Idenfy-Signature"
 
@@ -80,7 +77,7 @@ func NewHandler(kycService *services.KYCService, config *config.Config, logger *
 // @Router			/api/v1/token [post]
 func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get(HeaderClientID)
+		clientID := c.Locals("clientID").(string)
 		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		token, isNewToken, err := h.kycService.GetOrCreateVerificationToken(ctx, clientID)
@@ -111,7 +108,7 @@ func (h *Handler) GetOrCreateVerificationToken() fiber.Handler {
 // @Router			/api/v1/data [get]
 func (h *Handler) GetVerificationData() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		clientID := c.Get(HeaderClientID)
+		clientID := c.Locals("clientID").(string)
 		ctx, cancel := context.WithTimeout(c.Context(), HandlerTimeout)
 		defer cancel()
 		verification, err := h.kycService.GetVerificationData(ctx, clientID)
