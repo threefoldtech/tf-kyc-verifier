@@ -204,5 +204,3 @@ func NewLoggingMiddleware(logger *slog.Logger) fiber.Handler {
 		return err
 	}
 }
-
-

@@ -58,7 +58,12 @@ func (c *Idenfy) CreateVerificationSession(ctx context.Context, clientID string)
 	if err != nil {
 		return models.Token{}, fmt.Errorf("sending request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			c.logger.Error("Error closing response body", "error", err)
+		}
+	}()
 
 	return c.handleResponse(resp)
 }

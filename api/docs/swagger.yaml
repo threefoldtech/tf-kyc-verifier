@@ -62,7 +62,9 @@ definitions:
   config.TFChain:
     properties:
       wsProviderURL:
-        type: string
+        items:
+          type: string
+        type: array
     type: object
   config.Verification:
     properties:
@@ -70,11 +72,24 @@ definitions:
         items:
           type: string
         type: array
+      alwaysVerifiedIDsOnly:
+        type: boolean
       expiredDocumentOutcome:
         type: string
       minBalanceToVerifyAccount:
         type: integer
       suspiciousVerificationOutcome:
+        type: string
+    type: object
+  models.Sponsorship:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      sponseeClientID:
+        type: string
+      sponsorClientID:
         type: string
     type: object
   responses.AppConfigsResponse:
@@ -130,6 +145,19 @@ definitions:
     x-enum-varnames:
     - OutcomeVerified
     - OutcomeRejected
+  responses.PaginatedResponse:
+    properties:
+      data: {}
+      pagination:
+        properties:
+          limit:
+            type: integer
+          offset:
+            type: integer
+          total:
+            type: integer
+        type: object
+    type: object
   responses.TokenResponse:
     properties:
       authToken:
@@ -345,6 +373,175 @@ paths:
       summary: Health Check
       tags:
       - Health
+  /api/v1/sponsorships:
+    get:
+      description: Returns a paginated list of sponsorships. If no filter is provided,
+        returns all sponsorships with pagination.
+      parameters:
+      - description: Filter by sponsor twin ID
+        in: query
+        name: sponsor_twin_id
+        type: integer
+      - description: Filter by sponsee twin ID
+        in: query
+        name: sponsee_twin_id
+        type: integer
+      - description: Filter by sponsor client ID
+        in: query
+        name: sponsor_client_id
+        type: string
+      - description: Filter by sponsee client ID
+        in: query
+        name: sponsee_client_id
+        type: string
+      - description: 'Maximum number of results to return (default: 50, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Number of results to skip for pagination (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of sponsorships
+          schema:
+            properties:
+              result:
+                allOf:
+                - $ref: '#/definitions/responses.PaginatedResponse'
+                - properties:
+                    data:
+                      items:
+                        $ref: '#/definitions/models.Sponsorship'
+                      type: array
+                  type: object
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: List sponsorships with optional filtering
+      tags:
+      - Sponsorships
+    post:
+      consumes:
+      - application/json
+      description: Creates a new sponsorship where a KYC-verified twin sponsors another
+        twin. Both sponsor and sponsee must authenticate.
+      parameters:
+      - description: TFChain SS58Address of the sponsor
+        in: header
+        maxLength: 48
+        minLength: 48
+        name: X-Client-ID
+        required: true
+        type: string
+      - description: hex-encoded message `{api-domain}:{timestamp}`
+        in: header
+        name: X-Challenge
+        required: true
+        type: string
+      - description: hex-encoded sr25519|ed25519 signature of the sponsor
+        in: header
+        maxLength: 128
+        minLength: 128
+        name: X-Signature
+        required: true
+        type: string
+      - description: TFChain SS58Address of the sponsee
+        in: header
+        maxLength: 48
+        minLength: 48
+        name: X-Sponsee-ID
+        required: true
+        type: string
+      - description: hex-encoded message `{api-domain}:{timestamp}`
+        in: header
+        name: X-Sponsee-Challenge
+        required: true
+        type: string
+      - description: hex-encoded sr25519|ed25519 signature of the sponsee
+        in: header
+        maxLength: 128
+        minLength: 128
+        name: X-Sponsee-Signature
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Sponsorship created successfully
+          schema:
+            properties:
+              result:
+                $ref: '#/definitions/models.Sponsorship'
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      summary: Create a new sponsorship
+      tags:
+      - Sponsorships
   /api/v1/status:
     get:
       consumes:
@@ -461,6 +658,13 @@ paths:
             type: object
         "402":
           description: Payment Required
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
           schema:
             properties:
               error:

@@ -163,6 +163,261 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/sponsorships": {
+            "get": {
+                "description": "Returns a paginated list of sponsorships. If no filter is provided, returns all sponsorships with pagination.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sponsorships"
+                ],
+                "summary": "List sponsorships with optional filtering",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Filter by sponsor twin ID",
+                        "name": "sponsor_twin_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by sponsee twin ID",
+                        "name": "sponsee_twin_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by sponsor client ID",
+                        "name": "sponsor_client_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by sponsee client ID",
+                        "name": "sponsee_client_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (default: 50, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of results to skip for pagination (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of sponsorships",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/definitions/responses.PaginatedResponse"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/models.Sponsorship"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new sponsorship where a KYC-verified twin sponsors another twin. Both sponsor and sponsee must authenticate.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sponsorships"
+                ],
+                "summary": "Create a new sponsorship",
+                "parameters": [
+                    {
+                        "maxLength": 48,
+                        "minLength": 48,
+                        "type": "string",
+                        "description": "TFChain SS58Address of the sponsor",
+                        "name": "X-Client-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "hex-encoded message ` + "`" + `{api-domain}:{timestamp}` + "`" + `",
+                        "name": "X-Challenge",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "maxLength": 128,
+                        "minLength": 128,
+                        "type": "string",
+                        "description": "hex-encoded sr25519|ed25519 signature of the sponsor",
+                        "name": "X-Signature",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "maxLength": 48,
+                        "minLength": 48,
+                        "type": "string",
+                        "description": "TFChain SS58Address of the sponsee",
+                        "name": "X-Sponsee-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "hex-encoded message ` + "`" + `{api-domain}:{timestamp}` + "`" + `",
+                        "name": "X-Sponsee-Challenge",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "maxLength": 128,
+                        "minLength": 128,
+                        "type": "string",
+                        "description": "hex-encoded sr25519|ed25519 signature of the sponsee",
+                        "name": "X-Sponsee-Signature",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Sponsorship created successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "$ref": "#/definitions/models.Sponsorship"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/status": {
             "get": {
                 "description": "Returns the verification status for a client",
@@ -339,6 +594,17 @@ const docTemplate = `{
                     },
                     "402": {
                         "description": "Payment Required",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -544,7 +810,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "wsProviderURL": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -557,6 +826,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "alwaysVerifiedIDsOnly": {
+                    "type": "boolean"
+                },
                 "expiredDocumentOutcome": {
                     "type": "string"
                 },
@@ -564,6 +836,23 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "suspiciousVerificationOutcome": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Sponsorship": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "sponseeClientID": {
+                    "type": "string"
+                },
+                "sponsorClientID": {
                     "type": "string"
                 }
             }
@@ -646,6 +935,26 @@ const docTemplate = `{
                 "OutcomeVerified",
                 "OutcomeRejected"
             ]
+        },
+        "responses.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "pagination": {
+                    "type": "object",
+                    "properties": {
+                        "limit": {
+                            "type": "integer"
+                        },
+                        "offset": {
+                            "type": "integer"
+                        },
+                        "total": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
         },
         "responses.TokenResponse": {
             "type": "object",

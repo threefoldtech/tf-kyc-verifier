@@ -93,7 +93,12 @@ func (r *mongoSponsorshipRepository) GetBySponsor(ctx context.Context, sponsorCl
 	if err != nil {
 		return nil, 0, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		err := cursor.Close(ctx)
+		if err != nil {
+			r.logger.Error("Error closing cursor", "error", err)
+		}
+	}()
 
 	var sponsorships []*models.Sponsorship
 	if err := cursor.All(ctx, &sponsorships); err != nil {
@@ -138,7 +143,12 @@ func (r *mongoSponsorshipRepository) ListAll(ctx context.Context, pagination Pag
 	if err != nil {
 		return nil, 0, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		err := cursor.Close(ctx)
+		if err != nil {
+			r.logger.Error("Error closing cursor", "error", err)
+		}
+	}()
 
 	var sponsorships []*models.Sponsorship
 	if err := cursor.All(ctx, &sponsorships); err != nil {
