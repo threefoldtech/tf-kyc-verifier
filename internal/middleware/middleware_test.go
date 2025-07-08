@@ -187,6 +187,175 @@ func TestAuthMiddleware(t *testing.T) {
 	}
 }
 
+func TestSponseeAuthMiddleware(t *testing.T) {
+	// Setup
+	app := fiber.New()
+	cfg := config.Challenge{
+		Window: 8,
+		Domain: "test.grid.tf",
+	}
+
+	// Mock handler that should be called after middleware
+	successHandler := func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	}
+
+	// Apply middleware
+	app.Use(SponseeAuthMiddleware(cfg))
+	app.Get("/test", successHandler)
+
+	// Generate keys
+	krSr25519, err := generateTestSr25519Keys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	krEd25519, err := generateTestEd25519Keys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	clientIDSr := krSr25519.SS58Address(42)
+	clientIDEd := krEd25519.SS58Address(42)
+	invalidChallenge := createInvalidSignMessageInvalidFormat(cfg.Domain)
+	expiredChallenge := createInvalidSignMessageExpired(cfg.Domain)
+	wrongDomainChallenge := createInvalidSignMessageWrongDomain()
+	validChallenge := createValidSignMessage(cfg.Domain)
+	sigSr, err := krSr25519.Sign([]byte(validChallenge))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sigEd, err := krEd25519.Sign([]byte(validChallenge))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sigSrHex := hex.EncodeToString(sigSr)
+	sigEdHex := hex.EncodeToString(sigEd)
+	tests := []struct {
+		name           string
+		clientID       string
+		signature      string
+		challenge      string
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name:           "Missing all credentials",
+			clientID:       "",
+			signature:      "",
+			challenge:      "",
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "missing sponsee authentication credentials",
+		},
+		{
+			name:           "Missing client ID",
+			clientID:       "",
+			signature:      sigSrHex,
+			challenge:      toHex(validChallenge),
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "missing sponsee authentication credentials",
+		},
+		{
+			name:           "Missing signature",
+			clientID:       clientIDSr,
+			signature:      "",
+			challenge:      toHex(validChallenge),
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "missing sponsee authentication credentials",
+		},
+		{
+			name:           "Missing challenge",
+			clientID:       clientIDSr,
+			signature:      sigSrHex,
+			challenge:      "",
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "missing sponsee authentication credentials",
+		},
+		{
+			name:           "Invalid client ID format",
+			clientID:       toHex("invalid_client_id"),
+			signature:      sigSrHex,
+			challenge:      toHex(validChallenge),
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "malformed address",
+		},
+		{
+			name:           "Invalid challenge format",
+			clientID:       clientIDSr,
+			signature:      sigSrHex,
+			challenge:      toHex(invalidChallenge),
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "invalid challenge format",
+		},
+		{
+			name:           "Expired challenge",
+			clientID:       clientIDSr,
+			signature:      sigSrHex,
+			challenge:      toHex(expiredChallenge),
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "challenge expired",
+		},
+		{
+			name:           "Invalid domain in challenge",
+			clientID:       clientIDSr,
+			signature:      sigSrHex,
+			challenge:      toHex(wrongDomainChallenge),
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "unexpected domain",
+		},
+		{
+			name:           "invalid signature format",
+			clientID:       clientIDSr,
+			signature:      "invalid_signature",
+			challenge:      toHex(validChallenge),
+			expectedStatus: fiber.StatusBadRequest,
+			expectedError:  "malformed signature",
+		},
+		{
+			name:           "bad signature",
+			clientID:       clientIDSr,
+			signature:      sigEdHex,
+			challenge:      toHex(validChallenge),
+			expectedStatus: fiber.StatusUnauthorized,
+			expectedError:  "signature does not match",
+		},
+		{
+			name:           "valid credentials SR25519",
+			clientID:       clientIDSr,
+			signature:      sigSrHex,
+			challenge:      toHex(validChallenge),
+			expectedStatus: fiber.StatusOK,
+		},
+		{
+			name:           "valid credentials ED25519",
+			clientID:       clientIDEd,
+			signature:      sigEdHex,
+			challenge:      toHex(validChallenge),
+			expectedStatus: fiber.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create request
+			req := createSponseeTestRequest(tt.clientID, tt.signature, tt.challenge)
+			resp, err := app.Test(req)
+
+			// Assert response
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			// Check error message if expected
+			if tt.expectedError != "" {
+				var errorResp struct {
+					Error string `json:"error"`
+				}
+				err = parseResponse(resp, &errorResp)
+				assert.NoError(t, err)
+				assert.Contains(t, errorResp.Error, tt.expectedError)
+			}
+		})
+	}
+}
+
 // Helper function to create test requests
 func createTestRequest(clientID, signature, challenge string) *http.Request {
 	req := httptest.NewRequest(fiber.MethodGet, "/test", nil)
@@ -198,6 +367,21 @@ func createTestRequest(clientID, signature, challenge string) *http.Request {
 	}
 	if challenge != "" {
 		req.Header.Set("X-Challenge", challenge)
+	}
+	return req
+}
+
+// Helper function to create test requests for sponsee
+func createSponseeTestRequest(sponseeID, signature, challenge string) *http.Request {
+	req := httptest.NewRequest(fiber.MethodGet, "/test", nil)
+	if sponseeID != "" {
+		req.Header.Set("X-Sponsee-ID", sponseeID)
+	}
+	if signature != "" {
+		req.Header.Set("X-Sponsee-Signature", signature)
+	}
+	if challenge != "" {
+		req.Header.Set("X-Sponsee-Challenge", challenge)
 	}
 	return req
 }

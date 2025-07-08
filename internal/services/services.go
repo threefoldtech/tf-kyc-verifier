@@ -25,6 +25,7 @@ const TFT_CONVERSION_FACTOR = 10000000
 type KYCService struct {
 	verificationRepo repository.VerificationRepository
 	tokenRepo        repository.TokenRepository
+	sponsorshipRepo  repository.SponsorshipRepository
 	idenfy           idenfy.IdenfyClient
 	substrate        substrate.SubstrateClient
 	config           *config.Verification
@@ -32,12 +33,21 @@ type KYCService struct {
 	IdenfySuffix     string
 }
 
-func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, idenfy idenfy.IdenfyClient, substrateClient substrate.SubstrateClient, config *config.Config, logger *slog.Logger) (*KYCService, error) {
+func NewKYCService(verificationRepo repository.VerificationRepository, tokenRepo repository.TokenRepository, sponsorshipRepo repository.SponsorshipRepository, idenfy idenfy.IdenfyClient, substrateClient substrate.SubstrateClient, config *config.Config, logger *slog.Logger) (*KYCService, error) {
 	idenfySuffix, err := GetIdenfySuffix(substrateClient, config)
 	if err != nil {
 		return nil, fmt.Errorf("getting idenfy suffix: %w", err)
 	}
-	return &KYCService{verificationRepo: verificationRepo, tokenRepo: tokenRepo, idenfy: idenfy, substrate: substrateClient, config: &config.Verification, logger: logger, IdenfySuffix: idenfySuffix}, nil
+	return &KYCService{
+		verificationRepo: verificationRepo,
+		tokenRepo:        tokenRepo,
+		sponsorshipRepo:  sponsorshipRepo,
+		idenfy:           idenfy,
+		substrate:        substrateClient,
+		config:           &config.Verification,
+		logger:           logger,
+		IdenfySuffix:     idenfySuffix,
+	}, nil
 }
 
 func GetIdenfySuffix(substrateClient substrate.SubstrateClient, config *config.Config) (string, error) {
@@ -169,15 +179,15 @@ func (s *KYCService) GetVerificationStatus(ctx context.Context, clientID string)
 	if s.config.AlwaysVerifiedIDsOnly {
 		return nil, nil
 	}
-	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
+	verification, err := s.getVerificationOutcome(ctx, clientID)
 	if err != nil {
 		s.logger.Error("Error getting verification from database", "clientID", clientID, "error", err)
-		return nil, errors.NewInternalError("getting verification from database", err)
+		return nil, err
 	}
 	if verification == nil {
 		return nil, nil
 	}
-	return verification.ToOutcome(*s.config), nil
+	return verification, nil
 }
 
 func (s *KYCService) GetVerificationStatusByTwinID(ctx context.Context, twinID uint32) (*models.VerificationOutcome, error) {
@@ -264,14 +274,130 @@ func (s *KYCService) processClientID(clientID string) (string, error) {
 	return strippedClientID, nil
 }
 
+// IsUserVerified checks if a user is directly KYC-verified
 func (s *KYCService) IsUserVerified(ctx context.Context, clientID string) (bool, error) {
-	verification, err := s.verificationRepo.GetVerification(ctx, clientID)
+	verification, err := s.getVerificationOutcome(ctx, clientID)
 	if err != nil {
-		s.logger.Error("Error getting verification from database", "clientID", clientID, "error", err)
-		return false, errors.NewInternalError("getting verification from database", err)
+		return false, err
 	}
 	if verification == nil {
 		return false, nil
 	}
-	return verification.ToOutcome(*s.config).Outcome == models.OutcomeApproved, nil
+	return verification.Outcome == models.OutcomeApproved, nil
+}
+
+func (s *KYCService) getVerificationOutcome(ctx context.Context, clientID string) (*models.VerificationOutcome, error) {
+	verification, err := s.GetVerificationData(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	if verification == nil {
+		// does user have a sponsorship?
+		sponsorship, err := s.sponsorshipRepo.GetBySponsee(ctx, clientID)
+		if err != nil {
+			s.logger.Error("Error checking sponsorship for user", "clientID", clientID, "error", err)
+			return nil, errors.NewInternalError("checking sponsorship for user", err)
+		}
+		if sponsorship != nil {
+			// User is sponsored, check if the sponsor is verified
+			sponsorVerification, err := s.GetVerificationData(ctx, sponsorship.SponsorClientID)
+			if err != nil {
+				s.logger.Error("Error checking sponsor verification status", "sponsorClientID", sponsorship.SponsorClientID, "error", err)
+				return nil, errors.NewInternalError("checking sponsor verification status", err)
+			}
+			if sponsorVerification != nil {
+				// return the verification outcome of the sponsor
+				return sponsorVerification.ToOutcome(*s.config), nil
+			}
+			s.logger.Warn("User is sponsored by an unverified sponsor", "sponseeClientID", clientID, "sponsorClientID", sponsorship.SponsorClientID)
+			return nil, nil // User is sponsored by an unverified sponsor
+		}
+		return nil, nil // User is not sponsored
+	}
+
+	return verification.ToOutcome(*s.config), nil
+}
+
+// -----------------------------
+// Sponsorship related methods
+// -----------------------------
+// CreateSponsorship creates a new sponsorship between a sponsor and sponsee
+func (s *KYCService) CreateSponsorship(ctx context.Context, sponsorClientID, sponseeClientID string) (*models.Sponsorship, error) {
+	// Check if sponsor is directly KYC-verified
+	sponsorVerification, err := s.GetVerificationData(ctx, sponsorClientID)
+	if err != nil {
+		return nil, fmt.Errorf("checking sponsor verification status: %w", err)
+	}
+	if sponsorVerification == nil || sponsorVerification.ToOutcome(*s.config).Outcome != models.OutcomeApproved {
+		return nil, errors.NewAuthorizationError("sponsor is not KYC-verified", nil)
+	}
+
+	// Check if sponsee is already sponsored
+	existingSponsorship, err := s.sponsorshipRepo.GetBySponsee(ctx, sponseeClientID)
+	if err != nil {
+		return nil, fmt.Errorf("checking existing sponsorship: %w", err)
+	}
+	if existingSponsorship != nil {
+		return nil, errors.NewConflictError("sponsee is already sponsored", nil)
+	}
+
+	// Create the sponsorship
+	sponsorship := &models.Sponsorship{
+		SponsorClientID: sponsorClientID,
+		SponseeClientID: sponseeClientID,
+		CreatedAt:       time.Now(),
+	}
+
+	if err := s.sponsorshipRepo.Create(ctx, sponsorship); err != nil {
+		return nil, fmt.Errorf("creating sponsorship: %w", err)
+	}
+
+	return sponsorship, nil
+}
+
+// GetSponsorships returns all active sponsorships for a given sponsor
+func (s *KYCService) GetSponsorshipsBySponsor(ctx context.Context, sponsorTwinID uint32, limit, offset int64) ([]*models.Sponsorship, int64, error) {
+	// get the address from the twinID
+	address, err := s.substrate.GetAddressByTwinID(sponsorTwinID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("getting address from twinID: %w", err)
+	}
+
+	return s.GetSponsorshipsBySponsorClientID(ctx, address, limit, offset)
+}
+
+// GetSponsorshipsBySponsorClientID returns all active sponsorships for a given sponsor client ID
+func (s *KYCService) GetSponsorshipsBySponsorClientID(ctx context.Context, sponsorClientID string, limit, offset int64) ([]*models.Sponsorship, int64, error) {
+	pagination := repository.PaginationParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+	return s.sponsorshipRepo.GetBySponsor(ctx, sponsorClientID, pagination)
+}
+
+// GetSponsorshipBySponsee returns the active sponsorship for a given sponsee
+func (s *KYCService) GetSponsorshipBySponsee(ctx context.Context, sponseeTwinID uint32) (*models.Sponsorship, error) {
+	// get the address from the twinID
+	address, err := s.substrate.GetAddressByTwinID(sponseeTwinID)
+	if err != nil {
+		return nil, fmt.Errorf("getting address from twinID: %w", err)
+	}
+	return s.GetSponsorshipBySponseeClientID(ctx, address)
+}
+
+// GetSponsorshipBySponseeClientID returns the active sponsorship for a given sponsee client ID
+func (s *KYCService) GetSponsorshipBySponseeClientID(ctx context.Context, sponseeClientID string) (*models.Sponsorship, error) {
+	return s.sponsorshipRepo.GetBySponsee(ctx, sponseeClientID)
+}
+
+// ListAllSponsorships returns a paginated list of all active sponsorships
+// limit: maximum number of sponsorships to return (default: 100, max: 1000)
+// offset: number of sponsorships to skip (default: 0)
+func (s *KYCService) ListAllSponsorships(ctx context.Context, limit, offset int64) ([]*models.Sponsorship, int64, error) {
+	pagination := repository.PaginationParams{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	return s.sponsorshipRepo.ListAll(ctx, pagination)
 }
