@@ -1,4 +1,4 @@
-# TF KYC Verifier
+# Grid KYC Verifier
 
 A Go-based identity verification service that integrates with iDenfy to provide Know Your Customer (KYC) functionality. It verifies government-issued identity documents and ensures compliance requirements are met before users can deploy workloads.
 
@@ -10,7 +10,7 @@ This service provides a RESTful API for identity verification workflows. It issu
 
 - **API server** — Go HTTP server with RESTful endpoints for token issuance, status checks, and sponsorship management
 - **iDenfy integration** — Webhook handlers and client for iDenfy verification flows
-- **Blockchain client** — TFChain integration for account and balance verification
+- **Blockchain client** — Ledger Chain integration for account and balance verification
 - **Authentication layer** — Challenge-response middleware using sr25519/ed25519 signatures
 - **Data persistence** — MongoDB repository layer for verification records and sponsorships
 - **Swagger documentation** — Interactive API docs served at `/docs`
@@ -31,7 +31,7 @@ This repository is owned and maintained by TF-Tech NV, a Belgian company respons
 ## Features
 
 - Identity verification using iDenfy
-- Blockchain integration with TFChain (Substrate-based)
+- Blockchain integration with Ledger Chain (Substrate-based)
 - MongoDB for data persistence
 - RESTful API endpoints for KYC operations
 - Swagger documentation
@@ -89,16 +89,16 @@ The application uses environment variables for configuration. Here is a list of 
 - `IDENFY_CALLBACK_URL`: URL for iDenfy verification update callbacks
 - `IDENFY_NAMESPACE`: Namespace for isolating different KYC services' data within the same iDenfy backend (default: `""`)
 
-### TFChain configuration
+### Ledger Chain configuration
 
-- `TFCHAIN_WS_PROVIDER_URL`: WebSocket provider URL for TFChain (default: `wss://tfchain.grid.tf`)
+- `TFCHAIN_WS_PROVIDER_URL`: WebSocket provider URL for Ledger Chain (default: `wss://tfchain.grid.tf`)
 
 ### Verification settings
 
 - `VERIFICATION_SUSPICIOUS_VERIFICATION_OUTCOME`: Outcome for suspicious verifications (default: `APPROVED`)
 - `VERIFICATION_EXPIRED_DOCUMENT_OUTCOME`: Outcome for expired documents (default: `REJECTED`)
 - `VERIFICATION_MIN_BALANCE_TO_VERIFY_ACCOUNT`: Minimum balance in uTFT required to verify an account (default: `10000000`)
-- `VERIFICATION_ALWAYS_VERIFIED_IDS`: Comma-separated list of TFChain SS58 addresses that are always verified (default: `""`)
+- `VERIFICATION_ALWAYS_VERIFIED_IDS`: Comma-separated list of Ledger Chain SS58 addresses that are always verified (default: `""`)
 - `VERIFICATION_ALWAYS_VERIFIED_IDS_ONLY`: When true, creation of KYC tokens is disabled on this network (default: `false`)
 
 ### Rate limiting
@@ -171,7 +171,7 @@ When authentication is required, include these headers:
 
 | Header | Description | Required |
 |--------|-------------|----------|
-| `X-Client-ID` | The TFChain SS58Address of the client | Yes |
+| `X-Client-ID` | The Ledger Chain SS58Address of the client | Yes |
 | `X-Challenge` | Hex-encoded message `{api-domain}:{timestamp}` | Yes |
 | `X-Signature` | Hex-encoded sr25519 or ed25519 signature of the challenge | Yes |
 
@@ -179,7 +179,7 @@ For sponsee authentication, include these additional headers:
 
 | Header | Description | Required |
 |--------|-------------|----------|
-| `X-Sponsee-ID` | The TFChain SS58Address of the sponsee | Yes |
+| `X-Sponsee-ID` | The Ledger Chain SS58Address of the sponsee | Yes |
 | `X-Sponsee-Challenge` | Hex-encoded message `{api-domain}:{timestamp}` | Yes |
 | `X-Sponsee-Signature` | Hex-encoded sr25519 or ed25519 signature of the sponsee | Yes |
 
