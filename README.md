@@ -52,7 +52,7 @@ This repository is owned and maintained by TF-Tech NV, a Belgian company respons
 
     ```bash
     git clone https://github.com/threefoldtech/tf-kyc-verifier.git
-    cd tf-kyc-verifier
+    cd grid_kyc_verifier
     ```
 
 2. Set up your environment variables:
